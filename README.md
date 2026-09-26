@@ -10,7 +10,7 @@ watermark, no limits — paste a link, get a file.
 | `web/` | The site. Static HTML/CSS/JS, installable as a PWA. |
 | `server.js` | Zero-dependency backend (`node:http` + built-in `fetch`). Static serving, rate limiting, and the `/api` routes. |
 | `api/index.js` | Vercel entry point. Mounts the same handler. |
-| `vercel.json` | Routes `/api` and `/file` to the function, everything else to the CDN. |
+| `vercel.json` | Routes every non-`/api` path into the function, plus cache and security headers. |
 | `extension/` | Chrome MV3 extension (MV3 service worker, `chrome.downloads`). |
 | `main.js`, `preload.js`, `ai.js`, `renderer/`, `resources/` | The Electron desktop app. |
 
@@ -26,13 +26,28 @@ never opens a port. That is what lets `api/index.js` reuse it unchanged.
 
 ## Deploying
 
-The site is a Vercel project. `vercel.json` sends `/api/*` and `/file/*` to the
-serverless function and lets the CDN serve the rest, so no page load touches a
-function. One setting matters: `WEB_ROOT` is set in `api/index.js` because
-`__dirname` is `/var/task/api` there, not the project root.
+The site is a Vercel project: **https://savevid-sigma.vercel.app**
 
-Static files in `web/` are also reachable through the function, which is how
-`robots.txt` and `sitemap.xml` are generated dynamically.
+`vercel.json` rewrites every path that is not under `/api/` into the function
+(`/((?!api/).*)`). Static files are served from `web/` by the same handler that
+runs locally, so production and local cannot drift, and `robots.txt` and
+`sitemap.xml` are generated dynamically rather than going stale.
+
+Everything goes through the function rather than the CDN deliberately: the
+download relay at `/api/stream` has to set `Content-Disposition` so the browser
+names the saved file, and a Vercel rewrite would strip that header.
+
+One setting matters: `WEB_ROOT` is set in `api/index.js` because `__dirname` is
+`/var/task/api` there, not the project root.
+
+Deploy with the CLI from the project root:
+
+```bash
+vercel --prod --yes --name savevid
+```
+
+`--name` is required here: without it the CLI derives the project name from the
+folder path, which contains spaces and capitals, and Vercel rejects it.
 
 ## Design notes
 
