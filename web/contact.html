@@ -62,6 +62,12 @@
      Tailwind defaults, and Tailwind generates CSS only from config. -->
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
+  /* The one address the whole page composes mail to. Set it once here and the
+     DMCA, privacy and general copy below all stay in step. Left empty, the form
+     tells the visitor to email directly instead of opening a blank composer. */
+  window.CONTACT_EMAIL = '';
+</script>
+<script>
   tailwind.config = {
     darkMode: 'class',
     theme: {
@@ -145,13 +151,13 @@
 <title>Contact SaveVid.net</title>
 <meta name="description" content="Get in touch with the SaveVid.net team: support, copyright and DMCA takedown requests, advertising, bug reports and feedback." />
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
-<link rel="canonical" href="https://savevid.net/contact.html" />
+<link rel="canonical" href="https://savevid-sigma.vercel.app/contact.html" />
 
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="SaveVid.net" />
 <meta property="og:title" content="Contact SaveVid.net" />
 <meta property="og:description" content="Get in touch with the SaveVid.net team: support, copyright and DMCA takedown requests, advertising, bug reports and feedback." />
-<meta property="og:url" content="https://savevid.net/contact.html" />
+<meta property="og:url" content="https://savevid-sigma.vercel.app/contact.html" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="Contact SaveVid.net" />
 <meta name="twitter:description" content="Get in touch with the SaveVid.net team: support, copyright and DMCA takedown requests, advertising, bug reports and feedback." />
@@ -192,8 +198,8 @@
 <p class="mb-8 text-sm text-slate-500 dark:text-slate-500">Last updated: 26 September 2026</p>
 <p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">The fastest way to reach us is the form below. It posts straight to our inbox — nothing is stored on this site, and nothing you type here is sent to any third party.</p>
 <ul class="mb-4 space-y-2 pl-5 text-slate-600 dark:text-slate-400">
-  <li><strong>Copyright / DMCA:</strong> <a href="mailto:dmca@savevid.net">dmca@savevid.net</a> — see the <a href="/dmca.html">DMCA &amp; Copyright page</a> for the exact notice required.</li>
-  <li><strong>Privacy:</strong> <a href="mailto:privacy@savevid.net">privacy@savevid.net</a></li>
+  <li><strong>Copyright / DMCA:</strong> choose <em>Copyright / DMCA</em> in the form below — see the <a href="/dmca.html">DMCA &amp; Copyright page</a> for the exact notice required.</li>
+  <li><strong>Privacy:</strong> choose <em>Privacy</em> in the form below.</li>
   <li><strong>Everything else:</strong> use the form.</li>
 </ul>
 
@@ -268,7 +274,18 @@
     var topic = form.topic.value;
     var body  = msg.value.trim();
 
-    var href = 'mailto:contact@savevid.net'
+    // The page has no backend of its own, so the composed message goes to
+    // whatever mail app the visitor already uses. If no address is configured
+    // there is nowhere to send it, and a silently dead form is worse than one
+    // that says so.
+    var inbox = window.CONTACT_EMAIL;
+    if (!inbox) {
+      say('The contact form is not available right now. Please try again later.', false);
+      btn.disabled = false;
+      return;
+    }
+
+    var href = 'mailto:' + inbox
       + '?subject=' + encodeURIComponent('[' + topic + '] from ' + name)
       + '&body=' + encodeURIComponent(body + '\n\n---\nFrom: ' + name + ' <' + email + '>');
 
@@ -277,7 +294,7 @@
     window.location.href = href;
     setTimeout(function () {
       btn.disabled = false;
-      say('If nothing opened, email us directly at contact@savevid.net.', false);
+      say('If nothing opened, email us directly at ' + inbox + '.', false);
     }, 2500);
   });
 })();

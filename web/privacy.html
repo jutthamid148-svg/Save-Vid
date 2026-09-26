@@ -62,6 +62,24 @@
      Tailwind defaults, and Tailwind generates CSS only from config. -->
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
+  /* Kept in step with the address on the contact page. */
+  window.CONTACT_EMAIL = '';
+</script>
+<script>
+  /* Every address on the legal pages comes from one value, so a change never
+     has to be chased through the copy. Until it is set, the text stays as the
+     link to the contact form rather than becoming a dead mailto. */
+  (function () {
+    if (!window.CONTACT_EMAIL) return;
+    document.querySelectorAll('[data-contact-email]').forEach(function (el) {
+      var a = document.createElement('a');
+      a.href = 'mailto:' + window.CONTACT_EMAIL;
+      a.textContent = window.CONTACT_EMAIL;
+      el.replaceWith(a);
+    });
+  })();
+</script>
+<script>
   tailwind.config = {
     darkMode: 'class',
     theme: {
@@ -145,13 +163,13 @@
 <title>Privacy Policy — SaveVid.net</title>
 <meta name="description" content="How SaveVid.net handles your data: what we collect, what we do not, cookies and advertising, and how to contact us." />
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
-<link rel="canonical" href="https://savevid.net/privacy.html" />
+<link rel="canonical" href="https://savevid-sigma.vercel.app/privacy.html" />
 
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="SaveVid.net" />
 <meta property="og:title" content="Privacy Policy — SaveVid.net" />
 <meta property="og:description" content="How SaveVid.net handles your data: what we collect, what we do not, cookies and advertising, and how to contact us." />
-<meta property="og:url" content="https://savevid.net/privacy.html" />
+<meta property="og:url" content="https://savevid-sigma.vercel.app/privacy.html" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="Privacy Policy — SaveVid.net" />
 <meta name="twitter:description" content="How SaveVid.net handles your data: what we collect, what we do not, cookies and advertising, and how to contact us." />
@@ -225,7 +243,7 @@
 <h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">Changes to this policy</h2>
 <p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">We may update this page as the service changes. The date at the top always reflects the current version. Material changes will be noted on this page.</p>
 <h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">Contact</h2>
-<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">Questions about privacy? Use the <a href="/contact.html">contact form</a> or email <a href="mailto:privacy@savevid.net">privacy@savevid.net</a>.</p>
+<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">Questions about privacy? Use the <a href="/contact.html">contact form</a> or email <span data-contact-email>our contact form</span>.</p>
 
 </main>
 

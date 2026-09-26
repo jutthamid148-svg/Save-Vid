@@ -1310,7 +1310,7 @@ async function api(req, res, route) {
 
 // The canonical origin. Canonical tags, sitemap and robots all read from here
 // so the generated SEO files can never drift out of sync with the pages.
-const SITE = process.env.SITE_ORIGIN || 'https://savevid.net';
+const SITE = process.env.SITE_ORIGIN || 'https://savevid-sigma.vercel.app';
 
 // Long-lived caching for static assets, but never for HTML -- html is the file a
 // deploy changes, and a cached copy hides a broken deploy from everyone.

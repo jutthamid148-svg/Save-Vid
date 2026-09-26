@@ -62,6 +62,24 @@
      Tailwind defaults, and Tailwind generates CSS only from config. -->
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
+  /* Kept in step with the address on the contact page. */
+  window.CONTACT_EMAIL = '';
+</script>
+<script>
+  /* Every address on the legal pages comes from one value, so a change never
+     has to be chased through the copy. Until it is set, the text stays as the
+     link to the contact form rather than becoming a dead mailto. */
+  (function () {
+    if (!window.CONTACT_EMAIL) return;
+    document.querySelectorAll('[data-contact-email]').forEach(function (el) {
+      var a = document.createElement('a');
+      a.href = 'mailto:' + window.CONTACT_EMAIL;
+      a.textContent = window.CONTACT_EMAIL;
+      el.replaceWith(a);
+    });
+  })();
+</script>
+<script>
   tailwind.config = {
     darkMode: 'class',
     theme: {
@@ -145,13 +163,13 @@
 <title>DMCA & Copyright Notice — SaveVid.net</title>
 <meta name="description" content="SaveVid.net respects copyright. Our DMCA policy, takedown procedure, and the notice we require rights holders to send." />
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
-<link rel="canonical" href="https://savevid.net/dmca.html" />
+<link rel="canonical" href="https://savevid-sigma.vercel.app/dmca.html" />
 
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="SaveVid.net" />
 <meta property="og:title" content="DMCA & Copyright Notice — SaveVid.net" />
 <meta property="og:description" content="SaveVid.net respects copyright. Our DMCA policy, takedown procedure, and the notice we require rights holders to send." />
-<meta property="og:url" content="https://savevid.net/dmca.html" />
+<meta property="og:url" content="https://savevid-sigma.vercel.app/dmca.html" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="DMCA & Copyright Notice — SaveVid.net" />
 <meta name="twitter:description" content="SaveVid.net respects copyright. Our DMCA policy, takedown procedure, and the notice we require rights holders to send." />
@@ -208,7 +226,7 @@
 <h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">What you must not do</h2>
 <p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">Do not use SaveVid.net to download material you do not own and do not have permission to save. This includes commercial re-uploads, compilations, clips taken from movies, television or music, ripped streams behind a paywall or DRM, and any material where the uploader did not hold the rights to redistribute it.</p>
 <h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">How to file a takedown notice</h2>
-<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">If you are a rights holder (or your agent) and believe content reachable through SaveVid.net infringes your copyright, send a written notice to <a href="mailto:dmca@savevid.net">dmca@savevid.net</a> that includes all of the following:</p>
+<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">If you are a rights holder (or your agent) and believe content reachable through SaveVid.net infringes your copyright, send a written notice to <span data-contact-email>our contact form</span> that includes all of the following:</p>
 <ul class="mb-4 space-y-2 pl-5 text-slate-600 dark:text-slate-400">
   <li>Your full legal name and contact information (address, telephone number, email address).</li>
   <li>Identification of the copyrighted work claimed to have been infringed. If the work is a compilation, identify the material complained of and the specific work it appears within.</li>
@@ -226,7 +244,7 @@
 <h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">Note on the DMCA and fair use</h2>
 <p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">The DMCA is a notice-and-takedown mechanism, not a censorship list. Filing a notice is a legal statement, and filing a false one is itself actionable. We do not adjudicate who owns what — we act on documented notices and let the legal process sort out disputes.</p>
 <h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">Contact</h2>
-<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">All copyright correspondence goes to <a href="mailto:dmca@savevid.net">dmca@savevid.net</a>. Please do not send general support questions there.</p>
+<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">All copyright correspondence goes to <span data-contact-email>our contact form</span>. Please do not send general support questions there.</p>
 
 </main>
 
