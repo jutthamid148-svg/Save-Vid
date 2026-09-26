@@ -1384,6 +1384,27 @@ function sitemapXml() {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 }
 
+/* ads.txt is AdSense's own authorization file. It is not optional and not
+   something to hand-write as a static file: the host in the first column must
+   match the account, and a mismatch is silently treated as unauthorized
+   inventory, which shows up as zero ads rather than as an error. It sits here
+   next to robots.txt for the same reason -- the site origin changes whenever
+   the real domain does, and neither file should need editing by hand. */
+const ADSENSE_PUBLISHER = 'pub-7335602358317571';
+const ADSENSE_SUBDIRECTORY = 'f08c47fec0942fa0';
+
+function adsTxt() {
+  return [
+    '# ads.txt for SaveVid.net',
+    '# Authorized Digital Sellers. Managed by Google AdSense.',
+    '# Format: <exchange>, <publisher ID>, DIRECT|RESELLER, <cert or tag>',
+    '# https://support.google.com/adsense/answer/1346295',
+    '',
+    `google.com, ${ADSENSE_PUBLISHER}, DIRECT, ${ADSENSE_SUBDIRECTORY}`,
+    ''
+  ].join('\n');
+}
+
 function robotsTxt() {
   return [
     '# SaveVid.net',
@@ -1454,6 +1475,7 @@ async function handler(req, res) {
   const urlPath = decodeURIComponent(new URL(req.url, 'http://x').pathname);
 
   if (urlPath === '/robots.txt')  { send(res, 200, robotsTxt(), MIME['.txt']); return; }
+  if (urlPath === '/ads.txt')     { send(res, 200, adsTxt(), MIME['.txt']); return; }
   if (urlPath === '/sitemap.xml') { send(res, 200, sitemapXml(), MIME['.xml']); return; }
 
   if (urlPath.startsWith('/api/')) {

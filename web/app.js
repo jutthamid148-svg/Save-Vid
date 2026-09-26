@@ -887,9 +887,23 @@ function endDownload(buttonEl) {
   const slots = document.querySelectorAll('.ad-slot');
   if (!client || !slots.length) return;
 
-  // The placeholder publisher id in the markup means "not configured yet".
-  // Loading it would produce no ads and a console error on every page.
-  if (client.startsWith('ca-pub-0000')) return;
+  // A publisher id of all zeros means "not configured yet". Loading it would
+  // produce no ads and a console error on every page.
+  if (!client || client.startsWith('ca-pub-0000')) return;
+
+  // Each slot needs its own ad unit id. Pushing a bare {} registers the ad
+  // script but never fills a slot, so the loader would sit there holding an
+  // empty grey box forever. The publisher id alone is not enough.
+  slots.forEach((slot) => {
+    const id = slot.dataset.adClient;
+    if (!id || !/^\d{10,}$/.test(id)) return;
+    try {
+      (window.adsbygoogle = window.adsbygoogle || []).push({
+        google_ad_client: client,
+        ad_slot: id
+      });
+    } catch { /* one bad slot must not stop the rest */ }
+  });
 
   let loaded = false;
 
@@ -904,18 +918,15 @@ function endDownload(buttonEl) {
     s.onerror = () => { loaded = false; };
     document.head.appendChild(s);
 
+    // Drop the grey placeholder once a creative is actually in the slot.
     slots.forEach((slot) => {
-      try {
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-        // Drop the grey placeholder once a creative is actually in the slot.
-        const obs = new MutationObserver(() => {
-          if (slot.querySelector('iframe')) {
-            slot.classList.add('is-filled');
-            obs.disconnect();
-          }
-        });
-        obs.observe(slot, { childList: true, subtree: true });
-      } catch { /* one bad slot must not stop the rest */ }
+      const obs = new MutationObserver(() => {
+        if (slot.querySelector('iframe')) {
+          slot.classList.add('is-filled');
+          obs.disconnect();
+        }
+      });
+      obs.observe(slot, { childList: true, subtree: true });
     });
   }
 
