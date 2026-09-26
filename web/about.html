@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; border: 0 solid; }
+
+  html { -webkit-text-size-adjust: 100%; line-height: 1.5; }
+
+  body {
+    margin: 0;
+    font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system,
+                 "Helvetica Neue", Arial, sans-serif;
+    /* Matches the dark background on <body>. Without this the page flashes
+       white before Tailwind arrives, and the flash is worse than the delay. */
+    background: #070b12;
+    color: #e2e8f0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* An SVG with a viewBox and no width/height defaults to 300x150 in some
+     engines and stretches to its container in others. This is the single
+     rule that stops icons exploding to screen size. */
+  svg { display: block; vertical-align: middle; max-width: 100%; }
+
+  img, video, canvas { display: block; max-width: 100%; height: auto; }
+
+  h1, h2, h3, h4, p, ul, ol, figure { margin: 0; }
+  ul, ol { padding: 0; list-style: none; }
+
+  a { color: inherit; text-decoration: none; }
+
+  button, input, select, textarea { font: inherit; color: inherit; }
+
+  /* The skip link must be invisible until focused. This is the screen-reader
+     affordance; showing it to everyone is a bug, not a style. */
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  }
+  .focus\:not-sr-only:focus {
+    position: fixed; width: auto; height: auto; margin: 0; overflow: visible;
+    clip: auto; white-space: normal;
+    top: 1rem; left: 1rem; z-index: 100;
+    padding: .5rem 1rem; border-radius: .5rem;
+    background: #2f6bff; color: #fff; font-weight: 600; font-size: .875rem;
+  }
+
+  /* The design is dark-first. Pinning it here stops the white flash; the
+     .dark class on <html> then overrides these once Tailwind takes over. */
+  @media (prefers-color-scheme: light) { body { background: #fff; color: #1e293b; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+</style>
+
+<!-- Tailwind. The config is required, not optional: the markup uses
+     brand-50/400/500/600 and five custom animations, none of which are
+     Tailwind defaults, and Tailwind generates CSS only from config. -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          brand: {
+            50:  '#eef4ff',
+            100: '#d9e5ff',
+            400: '#4d86ff',
+            500: '#2f6bff',
+            600: '#1d4ff0'
+          }
+        },
+        fontFamily: {
+          sans: ['"Segoe UI Variable Text"', '"Segoe UI"', 'system-ui',
+                 '-apple-system', '"Helvetica Neue"', 'Arial', 'sans-serif']
+        },
+        keyframes: {
+          // Slow, large-radius drift for the ambient background blobs.
+          drift: {
+            '0%,100%': { transform: 'translate(0,0) scale(1)' },
+            '33%':     { transform: 'translate(6%,-5%) scale(1.06)' },
+            '66%':     { transform: 'translate(-5%,6%) scale(.95)' }
+          },
+          // Gentle bob for the floating hero icons.
+          floaty: {
+            '0%,100%': { transform: 'translateY(0)' },
+            '50%':     { transform: 'translateY(-13px)' }
+          },
+          // Entrance for cards and sections, used with [animation-delay:].
+          rise: {
+            from: { opacity: '0', transform: 'translateY(26px)' },
+            to:   { opacity: '1', transform: 'none' }
+          },
+          twinkle: {
+            '0%,100%': { opacity: '.25', transform: 'scale(.85)' },
+            '50%':     { opacity: '1',  transform: 'scale(1.1)' }
+          },
+          // The animated blue underline under the hero title: the dash length
+          // grows while the offset is held at the baseline. Named to match the
+          // markup exactly (animate-drawLine), since a mismatch is silent.
+          drawLine: {
+            from: { strokeDashoffset: '340' },
+            to:   { strokeDashoffset: '0' }
+          },
+          // Expanding ring on the live status dot.
+          pulseRing: {
+            '0%':   { transform: 'scale(.85)', opacity: '.7' },
+            '100%': { transform: 'scale(2.2)', opacity: '0' }
+          }
+        },
+        animation: {
+          drift:     'drift 26s ease-in-out infinite',
+          floaty:    'floaty 6s ease-in-out infinite',
+          rise:      'rise .7s cubic-bezier(.22,1,.36,1) both',
+          twinkle:   'twinkle 3.4s ease-in-out infinite',
+          drawLine:  'drawLine 1.1s cubic-bezier(.22,1,.36,1) .35s both',
+          pulseRing: 'pulseRing 2.4s ease-out infinite'
+        }
+      }
+    }
+  };
+</script>
+
+<!-- The font stack the brand uses. Kept local-first so the page does not wait
+     on a third party for its own typography. -->
+<link rel="preconnect" href="https://cdn.tailwindcss.com" />
+<!-- Theme, resolved before first paint so there is no light flash on a dark
+     device. Reads the same key app.js writes, so the toggle and the legal pages
+     stay in agreement. Dark is the design's first-class mode; the brand uses
+     navy, not the emerald an earlier draft of the spec described. -->
+<script>
+  (function () {
+    var saved = null;
+    try { saved = localStorage.getItem('loader-theme'); } catch (e) { /* private mode */ }
+    var dark = saved ? saved === 'dark'
+      : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
+<title>About SaveVid.net — A Free Video Downloader Utility</title>
+<meta name="description" content="SaveVid.net is an independent, free, no-signup tool for saving publicly available video and audio to your own device. Here is what it does and how it works." />
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+<link rel="canonical" href="https://savevid.net/about.html" />
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="SaveVid.net" />
+<meta property="og:title" content="About SaveVid.net — A Free Video Downloader Utility" />
+<meta property="og:description" content="SaveVid.net is an independent, free, no-signup tool for saving publicly available video and audio to your own device. Here is what it does and how it works." />
+<meta property="og:url" content="https://savevid.net/about.html" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="About SaveVid.net — A Free Video Downloader Utility" />
+<meta name="twitter:description" content="SaveVid.net is an independent, free, no-signup tool for saving publicly available video and audio to your own device. Here is what it does and how it works." />
+
+<meta name="theme-color" content="#070b12" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<link rel="icon" href="/icons/favicon-32.png" sizes="32x32" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+<link rel="stylesheet" href="/styles.css" />
+<link rel="stylesheet" href="/legal.css" />
+
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-[#070b12] dark:text-slate-200">
+
+<a href="#main" class="skip">Skip to content</a>
+
+<header class="border-b border-slate-200 bg-white/85 backdrop-blur-xl dark:border-white/10 dark:bg-[#070b12]/85">
+  <div class="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3.5">
+    <a href="/" class="flex items-center gap-2.5 font-bold tracking-tight">
+      <span class="grid h-9 w-9 place-items-center rounded-xl bg-brand-500 text-white">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M12 15l-5-5M12 15l5-5M5 20h14"/></svg>
+      </span>
+      <span class="text-lg">SaveVid<span class="text-brand-500">.net</span></span>
+    </a>
+    <nav class="hidden gap-5 text-sm font-medium sm:flex" aria-label="Main">
+      <a href="/" class="text-slate-600 transition hover:text-brand-500 dark:text-slate-300 dark:hover:text-brand-400">Downloader</a>
+      <a href="/#how-to" class="text-slate-600 transition hover:text-brand-500 dark:text-slate-300 dark:hover:text-brand-400">How to</a>
+      <a href="/#faq" class="text-slate-600 transition hover:text-brand-500 dark:text-slate-300 dark:hover:text-brand-400">FAQ</a>
+      <a href="/about.html" class="text-slate-600 transition hover:text-brand-500 dark:text-slate-300 dark:hover:text-brand-400">About</a>
+      <a href="/contact.html" class="text-slate-600 transition hover:text-brand-500 dark:text-slate-300 dark:hover:text-brand-400">Contact</a>
+    </nav>
+    <a href="/" class="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-600">Download</a>
+  </div>
+</header>
+
+<main id="main" class="mx-auto max-w-4xl px-4 py-12 sm:py-16">
+<h1 class="mb-3 text-3xl font-extrabold tracking-tight sm:text-4xl">About SaveVid.net</h1>
+<p class="mb-8 text-sm text-slate-500 dark:text-slate-500">Last updated: 26 September 2026</p>
+<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">SaveVid.net is a small, independent utility built around one job: getting a publicly available video or audio file onto your own device, quickly, without asking you to create an account.</p>
+<h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">What we do</h2>
+<ul class="mb-4 space-y-2 pl-5 text-slate-600 dark:text-slate-400">
+  <li><strong>Fast.</strong> Metadata and available quality options usually appear in two to three seconds, because the title, thumbnail and format list are fetched in parallel and repeat lookups are served from a short-lived cache.</li>
+  <li><strong>No account.</strong> There is no sign-up, no email capture, no paywall on the basic features and no "premium" tier.</li>
+  <li><strong>Nothing stored.</strong> Files stream straight from the source platform to your device. We never write them to our own disk.</li>
+  <li><strong>Open about the law.</strong> We tell you plainly what the tool is for, what it is not for, and how rights holders reach us.</li>
+</ul>
+<h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">How it works</h2>
+<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">When you paste a link, SaveVid.net asks the source platform for the public metadata about that video — its title, thumbnail and the list of formats it offers. Your browser then requests the file you chose directly from the platform's own delivery network, passing through our server only to set the correct filename and save it. The video is never copied to or held on our hardware.</p>
+<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">A recent look-up of the same link is answered from an in-memory cache, which is why the second visit to the same video is effectively instant.</p>
+<h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">How we are paid</h2>
+<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">SaveVid.net is free to use and funded by advertising. Ad placements are labelled and kept out of the download controls. We do not accept payment to feature, rank or promote any video, and we do not accept payment to remove a notice.</p>
+<h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">What we ask of you</h2>
+<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">The tool is powerful, which puts the responsibility on the person using it. Please download only what you own or have permission to save — your own uploads, Creative Commons or licensed material, public-domain works, and content a creator has explicitly allowed you to download. If you are not sure whether something is fair to keep, the answer is usually no.</p>
+<h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">Independence</h2>
+<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">SaveVid.net is not affiliated with YouTube, Google, TikTok, Instagram, Facebook, X, Vimeo, Dailymotion, SoundCloud or any other platform we support. We do not host or mirror their media, we do not have access to private or paywalled content, and we cannot help you get at anything a platform has chosen to protect.</p>
+<h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">Contact</h2>
+<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">Questions, corrections or takedown requests are all welcome — use the <a href="/contact.html">contact form</a>.</p>
+
+</main>
+
+<footer class="border-t border-slate-200 py-10 text-sm dark:border-white/10">
+  <div class="mx-auto max-w-4xl px-4">
+    <p class="mb-4 font-semibold">SaveVid.net</p>
+    <nav class="mb-6 flex flex-wrap gap-x-5 gap-y-2" aria-label="Legal">
+      <a href="/about.html" class="text-slate-500 transition hover:text-brand-500 dark:text-slate-400">About</a>
+      <a href="/privacy.html" class="text-slate-500 transition hover:text-brand-500 dark:text-slate-400">Privacy Policy</a>
+      <a href="/terms.html" class="text-slate-500 transition hover:text-brand-500 dark:text-slate-400">Terms of Service</a>
+      <a href="/dmca.html" class="text-slate-500 transition hover:text-brand-500 dark:text-slate-400">DMCA & Copyright</a>
+      <a href="/contact.html" class="text-slate-500 transition hover:text-brand-500 dark:text-slate-400">Contact</a>
+    </nav>
+    <p class="mb-3 text-slate-500 dark:text-slate-400">
+      &copy; 2026 SaveVid.net — an independent utility. Not affiliated with, endorsed by, or sponsored by YouTube, Google, TikTok, Instagram, Facebook, X, or any other platform listed.
+      Only download content you own or have permission to save.
+    </p>
+    <p class="text-slate-500 dark:text-slate-400">
+      A sister site by the same operator: <a href="https://aifinancepk.site" target="_blank" rel="noopener nofollow" class="font-medium text-brand-500 transition hover:text-brand-600 dark:hover:text-brand-400">AIFinancePK</a>.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

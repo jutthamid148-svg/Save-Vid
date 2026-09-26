@@ -1,0 +1,46 @@
+{
+  "name": "vidgrab",
+  "version": "1.0.0",
+  "description": "Fast multi-platform video downloader (YouTube, Facebook, Instagram, Twitter/X, TikTok, SoundCloud)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --x64",
+    "pack": "electron-builder --dir"
+  },
+  "author": "VidGrab",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^32.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.vidgrab.app",
+    "productName": "VidGrab",
+    "files": [
+      "main.js",
+      "preload.js",
+      "ai.js",
+      "renderer/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "resources",
+        "to": "."
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  }
+}

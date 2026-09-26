@@ -1,0 +1,70 @@
+/* Styling for the generated legal / content pages.
+   The main site uses Tailwind via the CDN; these pages stay dependency-free so
+   they render even if the CDN is blocked, and so they load fast for crawlers. */
+
+:root { color-scheme: light dark; }
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font: 16px/1.7 "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3 { letter-spacing: -0.02em; line-height: 1.25; }
+h1 { margin: 0 0 .75rem; font-size: clamp(1.9rem, 4.5vw, 2.6rem); font-weight: 800; }
+h2 { margin: 2.5rem 0 .75rem; font-size: 1.25rem; font-weight: 700; }
+
+p, ul, ol { margin: 0 0 1rem; }
+li { margin-bottom: .5rem; }
+li::marker { color: #2f6bff; }
+
+a { color: #2f6bff; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:hover { color: #1d4ff0; }
+
+strong { font-weight: 650; color: inherit; }
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .9em;
+  background: rgba(127, 140, 165, .16);
+  padding: .15em .4em;
+  border-radius: .35em;
+}
+
+/* Light mode */
+body { color: #1e293b; background: #f8fafc; }
+main p, main li { color: #475569; }
+main strong { color: #0f172a; }
+
+/* Dark mode, keyed off the class the shared shell sets. */
+.dark body, body.dark { color: #e2e8f0; background: #070b12; }
+.dark main p, .dark main li, body.dark main p, body.dark main li { color: #94a3b8; }
+.dark main strong, body.dark main strong { color: #f1f5f9; }
+.dark a, body.dark a { color: #7ea6ff; }
+.dark a:hover, body.dark a:hover { color: #90b4ff; }
+.dark code, body.dark code { background: rgba(255, 255, 255, .09); }
+
+.skip {
+  position: absolute; left: -9999px; top: 0; z-index: 100;
+  background: #2f6bff; color: #fff; padding: .75rem 1.25rem; border-radius: 0 0 .75rem 0;
+  font-weight: 600;
+}
+.skip:focus { left: 0; }
+
+/* The DMCA banner is the one place a heavier treatment earns its weight. */
+.notice {
+  margin: 0 0 2rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: .9rem;
+  border: 1px solid rgba(244, 63, 94, .35);
+  background: rgba(244, 63, 94, .08);
+}
+.dark .notice { border-color: rgba(244, 63, 94, .45); background: rgba(244, 63, 94, .12); }
+.notice p { color: inherit; }
+.notice .font-bold { color: #e11d48; }
+.dark .notice .font-bold { color: #fb7185; }
+
+::selection { background: rgba(47, 107, 255, .28); }

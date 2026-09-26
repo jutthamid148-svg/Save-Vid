@@ -1,0 +1,87 @@
+{
+  "manifest_version": 3,
+  "name": "SaveVid.net",
+  "version": "1.0.0",
+  "description": "Save videos and audio from YouTube, TikTok, Instagram, Facebook, X, SoundCloud, Vimeo and Dailymotion with SaveVid.net.",
+  "minimum_chrome_version": "102",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "contextMenus",
+    "downloads",
+    "clipboardWrite"
+  ],
+  "host_permissions": [
+    "https://*.youtube.com/*",
+    "https://youtu.be/*",
+    "https://*.tiktok.com/*",
+    "https://*.instagram.com/*",
+    "https://*.facebook.com/*",
+    "https://fb.watch/*",
+    "https://*.twitter.com/*",
+    "https://*.x.com/*",
+    "https://*.soundcloud.com/*",
+    "https://*.vimeo.com/*",
+    "https://*.dailymotion.com/*",
+    "https://savevid.net/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "SaveVid.net",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "logo.svg",
+      "48": "logo.svg",
+      "128": "logo.svg"
+    }
+  },
+  "icons": {
+    "16": "logo.svg",
+    "48": "logo.svg",
+    "128": "logo.svg"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.youtube.com/*",
+        "https://youtu.be/*",
+        "https://*.tiktok.com/*",
+        "https://*.instagram.com/*",
+        "https://*.facebook.com/*",
+        "https://fb.watch/*",
+        "https://*.twitter.com/*",
+        "https://*.x.com/*",
+        "https://*.soundcloud.com/*",
+        "https://*.vimeo.com/*",
+        "https://*.dailymotion.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["popup.css", "popup.js", "logo.svg"],
+      "matches": [
+        "https://*.youtube.com/*",
+        "https://youtu.be/*",
+        "https://*.tiktok.com/*",
+        "https://*.instagram.com/*",
+        "https://*.facebook.com/*",
+        "https://fb.watch/*",
+        "https://*.twitter.com/*",
+        "https://*.x.com/*",
+        "https://*.soundcloud.com/*",
+        "https://*.vimeo.com/*",
+        "https://*.dailymotion.com/*"
+      ]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

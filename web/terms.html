@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; border: 0 solid; }
+
+  html { -webkit-text-size-adjust: 100%; line-height: 1.5; }
+
+  body {
+    margin: 0;
+    font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system,
+                 "Helvetica Neue", Arial, sans-serif;
+    /* Matches the dark background on <body>. Without this the page flashes
+       white before Tailwind arrives, and the flash is worse than the delay. */
+    background: #070b12;
+    color: #e2e8f0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* An SVG with a viewBox and no width/height defaults to 300x150 in some
+     engines and stretches to its container in others. This is the single
+     rule that stops icons exploding to screen size. */
+  svg { display: block; vertical-align: middle; max-width: 100%; }
+
+  img, video, canvas { display: block; max-width: 100%; height: auto; }
+
+  h1, h2, h3, h4, p, ul, ol, figure { margin: 0; }
+  ul, ol { padding: 0; list-style: none; }
+
+  a { color: inherit; text-decoration: none; }
+
+  button, input, select, textarea { font: inherit; color: inherit; }
+
+  /* The skip link must be invisible until focused. This is the screen-reader
+     affordance; showing it to everyone is a bug, not a style. */
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  }
+  .focus\:not-sr-only:focus {
+    position: fixed; width: auto; height: auto; margin: 0; overflow: visible;
+    clip: auto; white-space: normal;
+    top: 1rem; left: 1rem; z-index: 100;
+    padding: .5rem 1rem; border-radius: .5rem;
+    background: #2f6bff; color: #fff; font-weight: 600; font-size: .875rem;
+  }
+
+  /* The design is dark-first. Pinning it here stops the white flash; the
+     .dark class on <html> then overrides these once Tailwind takes over. */
+  @media (prefers-color-scheme: light) { body { background: #fff; color: #1e293b; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+</style>
+
+<!-- Tailwind. The config is required, not optional: the markup uses
+     brand-50/400/500/600 and five custom animations, none of which are
+     Tailwind defaults, and Tailwind generates CSS only from config. -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          brand: {
+            50:  '#eef4ff',
+            100: '#d9e5ff',
+            400: '#4d86ff',
+            500: '#2f6bff',
+            600: '#1d4ff0'
+          }
+        },
+        fontFamily: {
+          sans: ['"Segoe UI Variable Text"', '"Segoe UI"', 'system-ui',
+                 '-apple-system', '"Helvetica Neue"', 'Arial', 'sans-serif']
+        },
+        keyframes: {
+          // Slow, large-radius drift for the ambient background blobs.
+          drift: {
+            '0%,100%': { transform: 'translate(0,0) scale(1)' },
+            '33%':     { transform: 'translate(6%,-5%) scale(1.06)' },
+            '66%':     { transform: 'translate(-5%,6%) scale(.95)' }
+          },
+          // Gentle bob for the floating hero icons.
+          floaty: {
+            '0%,100%': { transform: 'translateY(0)' },
+            '50%':     { transform: 'translateY(-13px)' }
+          },
+          // Entrance for cards and sections, used with [animation-delay:].
+          rise: {
+            from: { opacity: '0', transform: 'translateY(26px)' },
+            to:   { opacity: '1', transform: 'none' }
+          },
+          twinkle: {
+            '0%,100%': { opacity: '.25', transform: 'scale(.85)' },
+            '50%':     { opacity: '1',  transform: 'scale(1.1)' }
+          },
+          // The animated blue underline under the hero title: the dash length
+          // grows while the offset is held at the baseline. Named to match the
+          // markup exactly (animate-drawLine), since a mismatch is silent.
+          drawLine: {
+            from: { strokeDashoffset: '340' },
+            to:   { strokeDashoffset: '0' }
+          },
+          // Expanding ring on the live status dot.
+          pulseRing: {
+            '0%':   { transform: 'scale(.85)', opacity: '.7' },
+            '100%': { transform: 'scale(2.2)', opacity: '0' }
+          }
+        },
+        animation: {
+          drift:     'drift 26s ease-in-out infinite',
+          floaty:    'floaty 6s ease-in-out infinite',
+          rise:      'rise .7s cubic-bezier(.22,1,.36,1) both',
+          twinkle:   'twinkle 3.4s ease-in-out infinite',
+          drawLine:  'drawLine 1.1s cubic-bezier(.22,1,.36,1) .35s both',
+          pulseRing: 'pulseRing 2.4s ease-out infinite'
+        }
+      }
+    }
+  };
+</script>
+
+<!-- The font stack the brand uses. Kept local-first so the page does not wait
+     on a third party for its own typography. -->
+<link rel="preconnect" href="https://cdn.tailwindcss.com" />
+<!-- Theme, resolved before first paint so there is no light flash on a dark
+     device. Reads the same key app.js writes, so the toggle and the legal pages
+     stay in agreement. Dark is the design's first-class mode; the brand uses
+     navy, not the emerald an earlier draft of the spec described. -->
+<script>
+  (function () {
+    var saved = null;
+    try { saved = localStorage.getItem('loader-theme'); } catch (e) { /* private mode */ }
+    var dark = saved ? saved === 'dark'
+      : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
+<title>Terms of Service — SaveVid.net</title>
+<meta name="description" content="The terms that govern your use of SaveVid.net, including acceptable use, intellectual property, and limitation of liability." />
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+<link rel="canonical" href="https://savevid.net/terms.html" />
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="SaveVid.net" />
+<meta property="og:title" content="Terms of Service — SaveVid.net" />
+<meta property="og:description" content="The terms that govern your use of SaveVid.net, including acceptable use, intellectual property, and limitation of liability." />
+<meta property="og:url" content="https://savevid.net/terms.html" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Terms of Service — SaveVid.net" />
+<meta name="twitter:description" content="The terms that govern your use of SaveVid.net, including acceptable use, intellectual property, and limitation of liability." />
+
+<meta name="theme-color" content="#070b12" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<link rel="icon" href="/icons/favicon-32.png" sizes="32x32" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+<link rel="stylesheet" href="/styles.css" />
+<link rel="stylesheet" href="/legal.css" />
+
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-[#070b12] dark:text-slate-200">
+
+<a href="#main" class="skip">Skip to content</a>
+
+<header class="border-b border-slate-200 bg-white/85 backdrop-blur-xl dark:border-white/10 dark:bg-[#070b12]/85">
+  <div class="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3.5">
+    <a href="/" class="flex items-center gap-2.5 font-bold tracking-tight">
+      <span class="grid h-9 w-9 place-items-center rounded-xl bg-brand-500 text-white">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M12 15l-5-5M12 15l5-5M5 20h14"/></svg>
+      </span>
+      <span class="text-lg">SaveVid<span class="text-brand-500">.net</span></span>
+    </a>
+    <nav class="hidden gap-5 text-sm font-medium sm:flex" aria-label="Main">
+      <a href="/" class="text-slate-600 transition hover:text-brand-500 dark:text-slate-300 dark:hover:text-brand-400">Downloader</a>
+      <a href="/#how-to" class="text-slate-600 transition hover:text-brand-500 dark:text-slate-300 dark:hover:text-brand-400">How to</a>
+      <a href="/#faq" class="text-slate-600 transition hover:text-brand-500 dark:text-slate-300 dark:hover:text-brand-400">FAQ</a>
+      <a href="/about.html" class="text-slate-600 transition hover:text-brand-500 dark:text-slate-300 dark:hover:text-brand-400">About</a>
+      <a href="/contact.html" class="text-slate-600 transition hover:text-brand-500 dark:text-slate-300 dark:hover:text-brand-400">Contact</a>
+    </nav>
+    <a href="/" class="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-600">Download</a>
+  </div>
+</header>
+
+<main id="main" class="mx-auto max-w-4xl px-4 py-12 sm:py-16">
+<h1 class="mb-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Terms of Service</h1>
+<p class="mb-8 text-sm text-slate-500 dark:text-slate-500">Last updated: 26 September 2026</p>
+<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">By using SaveVid.net ("the Service", "we", "us") you agree to these terms. If you do not agree, please do not use the Service.</p>
+<h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">1. What the Service is</h2>
+<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">SaveVid.net is a free utility that helps you save video and audio files that are publicly available on third-party platforms for personal, non-commercial use. It is an independent tool. We are not affiliated with, endorsed by, or sponsored by YouTube, Google LLC, TikTok, Instagram, Facebook, X/Twitter, Vimeo, Dailymotion, SoundCloud, or any other platform whose content the Service can retrieve.</p>
+<h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">2. Acceptable use — the part that matters most</h2>
+<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">You are solely responsible for what you download. By using the Service you agree that:</p>
+<ul class="mb-4 space-y-2 pl-5 text-slate-600 dark:text-slate-400">
+  <li>You will only download content you <strong>own</strong>, content created by you, content published under a licence that permits downloading and redistribution, content in the public domain, or content you have <strong>express written permission</strong> to save.</li>
+  <li>You will not use the Service to infringe copyright, trademark, database, publicity or other intellectual-property rights of anyone.</li>
+  <li>You will not use the Service to download anything private, paywalled, DRM-protected, or otherwise access-controlled. If content is not publicly available, it is not available here.</li>
+  <li>You will not use the Service to build a dataset, mirror, archive or redistribution library of third-party media, or to train a machine-learning model.</li>
+  <li>You will not use the Service for commercial resale, or in a way that competes with the original rights holder.</li>
+  <li>You will not circumvent, break, or attempt to break any access control, rate limit, geographic restriction, or technical protection measure of any platform.</li>
+  <li>You will not abuse, overload, scrape, reverse-engineer or probe the Service, and will not attempt to bypass our rate limits or anti-abuse measures.</li>
+</ul>
+<h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">3. Your responsibilities</h2>
+<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">You are responsible for the legality of your download in your jurisdiction. Some countries have narrow exceptions to copyright for personal use; many do not, and the law is still developing. When in doubt, ask before you save.</p>
+<h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">4. Our content and branding</h2>
+<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">The SaveVid.net name, logo, interface, layout and written content are our property. You may link to the Service and quote short extracts with attribution. You may not reproduce the interface, rebrand it, or present a copy of the Service as your own.</p>
+<h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">5. No warranty</h2>
+<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">The Service is provided "as is" and "as available", without warranty of any kind, express or implied, including fitness for a particular purpose, merchantability, non-infringement, and uninterrupted availability. We do not warrant that the Service will be error-free, that any file will be retrievable, or that a download will be complete.</p>
+<h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">6. Limitation of liability</h2>
+<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">To the fullest extent permitted by law, we are not liable for any indirect, incidental, special, consequential or punitive damages, nor for any loss of data, profits, revenue or goodwill, arising out of or in connection with your use of the Service. This includes any claim that downloaded material infringes a third party's rights — that responsibility lies with you, not with us.</p>
+<h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">7. Third-party content</h2>
+<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">Content you retrieve through the Service remains the property of its rightsholders. We host no media. We provide a tool; you decide what to point it at.</p>
+<h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">8. Suspension and termination</h2>
+<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">We may rate-limit, block, or refuse access to anyone who breaches these terms, who abuses the Service, or whom we are asked by a rights holder or court order to block. We may also modify or discontinue any part of the Service at any time without notice.</p>
+<h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">9. Indemnity</h2>
+<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">You agree to indemnify and hold harmless SaveVid.net and its operators from any claim, demand, loss or expense (including reasonable legal fees) arising out of your use of the Service or your breach of these terms.</p>
+<h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">10. Changes</h2>
+<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">We may revise these terms. Continued use after a revision means you accept the revised terms. If you disagree, stop using the Service.</p>
+<h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">11. Severability and governing law</h2>
+<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">If a provision of these terms is found unenforceable, the rest remains in force. These terms are governed by the laws applicable at our principal place of business, without regard to conflict-of-law rules, and without limiting any mandatory consumer protections available to you where you live.</p>
+<h2 class="mt-10 mb-3 text-xl font-bold tracking-tight sm:text-2xl">12. Contact</h2>
+<p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">Questions about these terms? Use the <a href="/contact.html">contact form</a>.</p>
+
+</main>
+
+<footer class="border-t border-slate-200 py-10 text-sm dark:border-white/10">
+  <div class="mx-auto max-w-4xl px-4">
+    <p class="mb-4 font-semibold">SaveVid.net</p>
+    <nav class="mb-6 flex flex-wrap gap-x-5 gap-y-2" aria-label="Legal">
+      <a href="/about.html" class="text-slate-500 transition hover:text-brand-500 dark:text-slate-400">About</a>
+      <a href="/privacy.html" class="text-slate-500 transition hover:text-brand-500 dark:text-slate-400">Privacy Policy</a>
+      <a href="/terms.html" class="text-slate-500 transition hover:text-brand-500 dark:text-slate-400">Terms of Service</a>
+      <a href="/dmca.html" class="text-slate-500 transition hover:text-brand-500 dark:text-slate-400">DMCA & Copyright</a>
+      <a href="/contact.html" class="text-slate-500 transition hover:text-brand-500 dark:text-slate-400">Contact</a>
+    </nav>
+    <p class="mb-3 text-slate-500 dark:text-slate-400">
+      &copy; 2026 SaveVid.net — an independent utility. Not affiliated with, endorsed by, or sponsored by YouTube, Google, TikTok, Instagram, Facebook, X, or any other platform listed.
+      Only download content you own or have permission to save.
+    </p>
+    <p class="text-slate-500 dark:text-slate-400">
+      A sister site by the same operator: <a href="https://aifinancepk.site" target="_blank" rel="noopener nofollow" class="font-medium text-brand-500 transition hover:text-brand-600 dark:hover:text-brand-400">AIFinancePK</a>.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

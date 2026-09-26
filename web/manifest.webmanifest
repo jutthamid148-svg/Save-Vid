@@ -1,0 +1,37 @@
+{
+  "name": "SaveVid.net — Fast Video Downloader",
+  "short_name": "SaveVid",
+  "description": "Save videos and audio from YouTube and other supported platforms in seconds. Free, no signup, no watermarks.",
+  "id": "/",
+  "start_url": "/?utm_source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#070b12",
+  "theme_color": "#2f6bff",
+  "categories": ["utilities", "productivity", "video"],
+  "lang": "en",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Paste a link",
+      "short_name": "Paste",
+      "description": "Jump straight to the link box",
+      "url": "/?action=paste#downloader"
+    },
+    { "name": "How to use SaveVid", "short_name": "Help", "url": "/#how-to" }
+  ],
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "params": { "title": "title", "text": "text", "url": "url" }
+  }
+}

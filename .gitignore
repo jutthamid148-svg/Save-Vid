@@ -1,0 +1,15 @@
+*.log
+.DS_Store
+Thumbs.db
+out/
+
+# The Gemini key lives in config.json. It must never reach the repo, even though
+# the website no longer calls the API -- the Electron app can still write it.
+config.json
+
+# Electron build output and the bundled Windows yt-dlp binary (17MB). Both are
+# produced at release time, not checked in; the desktop app is built from a
+# clean checkout.
+dist/
+node_modules/
+*.exe

@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<!-- ─── Pre-Tailwind fallback ───────────────────────────────────────────────
+     Tailwind loads from a third-party CDN, so there is a real window on a slow
+     connection (or a blocked one) where the document has no styles at all. The
+     failure mode is not "looks slightly plain", it is catastrophic: block
+     elements stack with no margins, an SVG with only a viewBox expands to fill
+     whatever box it lands in, links turn into bare blue underlined text, and
+     the skip link becomes visible. This block pins down just enough to make
+     that state survivable. Tailwind's own preflight replaces it once loaded. -->
+<style>
+  *, *::before, *::after { box-sizing: border-box; border: 0 solid; }
+
+  html { -webkit-text-size-adjust: 100%; line-height: 1.5; }
+
+  body {
+    margin: 0;
+    font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system,
+                 "Helvetica Neue", Arial, sans-serif;
+    /* Matches the dark background on <body>. Without this the page flashes
+       white before Tailwind arrives, and the flash is worse than the delay. */
+    background: #070b12;
+    color: #e2e8f0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* An SVG with a viewBox and no width/height defaults to 300x150 in some
+     engines and stretches to its container in others. This is the single
+     rule that stops icons exploding to screen size. */
+  svg { display: block; vertical-align: middle; max-width: 100%; }
+
+  img, video, canvas { display: block; max-width: 100%; height: auto; }
+
+  h1, h2, h3, h4, p, ul, ol, figure { margin: 0; }
+  ul, ol { padding: 0; list-style: none; }
+
+  a { color: inherit; text-decoration: none; }
+
+  button, input, select, textarea { font: inherit; color: inherit; }
+
+  /* The skip link must be invisible until focused. This is the screen-reader
+     affordance; showing it to everyone is a bug, not a style. */
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  }
+  .focus\:not-sr-only:focus {
+    position: fixed; width: auto; height: auto; margin: 0; overflow: visible;
+    clip: auto; white-space: normal;
+    top: 1rem; left: 1rem; z-index: 100;
+    padding: .5rem 1rem; border-radius: .5rem;
+    background: #2f6bff; color: #fff; font-weight: 600; font-size: .875rem;
+  }
+
+  /* The design is dark-first. Pinning it here stops the white flash; the
+     .dark class on <html> then overrides these once Tailwind takes over. */
+  @media (prefers-color-scheme: light) { body { background: #fff; color: #1e293b; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+</style>
+
+<!-- Tailwind. The config is required, not optional: the markup uses
+     brand-50/400/500/600 and five custom animations, none of which are
+     Tailwind defaults, and Tailwind generates CSS only from config. -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          brand: {
+            50:  '#eef4ff',
+            100: '#d9e5ff',
+            400: '#4d86ff',
+            500: '#2f6bff',
+            600: '#1d4ff0'
+          }
+        },
+        fontFamily: {
+          sans: ['"Segoe UI Variable Text"', '"Segoe UI"', 'system-ui',
+                 '-apple-system', '"Helvetica Neue"', 'Arial', 'sans-serif']
+        },
+        keyframes: {
+          // Slow, large-radius drift for the ambient background blobs.
+          drift: {
+            '0%,100%': { transform: 'translate(0,0) scale(1)' },
+            '33%':     { transform: 'translate(6%,-5%) scale(1.06)' },
+            '66%':     { transform: 'translate(-5%,6%) scale(.95)' }
+          },
+          // Gentle bob for the floating hero icons.
+          floaty: {
+            '0%,100%': { transform: 'translateY(0)' },
+            '50%':     { transform: 'translateY(-13px)' }
+          },
+          // Entrance for cards and sections, used with [animation-delay:].
+          rise: {
+            from: { opacity: '0', transform: 'translateY(26px)' },
+            to:   { opacity: '1', transform: 'none' }
+          },
+          twinkle: {
+            '0%,100%': { opacity: '.25', transform: 'scale(.85)' },
+            '50%':     { opacity: '1',  transform: 'scale(1.1)' }
+          },
+          // The animated blue underline under the hero title: the dash length
+          // grows while the offset is held at the baseline. Named to match the
+          // markup exactly (animate-drawLine), since a mismatch is silent.
+          drawLine: {
+            from: { strokeDashoffset: '340' },
+            to:   { strokeDashoffset: '0' }
+          },
+          // Expanding ring on the live status dot.
+          pulseRing: {
+            '0%':   { transform: 'scale(.85)', opacity: '.7' },
+            '100%': { transform: 'scale(2.2)', opacity: '0' }
+          }
+        },
+        animation: {
+          drift:     'drift 26s ease-in-out infinite',
+          floaty:    'floaty 6s ease-in-out infinite',
+          rise:      'rise .7s cubic-bezier(.22,1,.36,1) both',
+          twinkle:   'twinkle 3.4s ease-in-out infinite',
+          drawLine:  'drawLine 1.1s cubic-bezier(.22,1,.36,1) .35s both',
+          pulseRing: 'pulseRing 2.4s ease-out infinite'
+        }
+      }
+    }
+  };
+</script>
+
+<!-- The font stack the brand uses. Kept local-first so the page does not wait
+     on a third party for its own typography. -->
+<link rel="preconnect" href="https://cdn.tailwindcss.com" />
+<!-- Theme, resolved before first paint so there is no light flash on a dark
+     device. Reads the same key app.js writes, so the toggle and the legal pages
+     stay in agreement. Dark is the design's first-class mode; the brand uses
+     navy, not the emerald an earlier draft of the spec described. -->
+<script>
+  (function () {
+    var saved = null;
+    try { saved = localStorage.getItem('loader-theme'); } catch (e) { /* private mode */ }
+    var dark = saved ? saved === 'dark'
+      : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
+<title>SaveVid.net — YouTube Video Downloader | MP3, MP4, 4K, No Signup</title>
+<meta name="description" content="Save videos and audio from YouTube and 8 more platforms in seconds. Free YouTube video downloader — MP4, MP3, WAV, up to 4K. No signup, no watermark, no limits." />
+<meta name="keywords" content="youtube video downloader, save video, youtube to mp3, youtube to mp4, 4k video downloader, video downloader, online video downloader, savevid" />
+<meta name="author" content="SaveVid.net" />
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+<meta name="googlebot" content="index, follow" />
+<meta name="theme-color" content="#070b12" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+<meta name="color-scheme" content="dark light" />
+<meta name="format-detection" content="telephone=no" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="SaveVid" />
+<meta name="application-name" content="SaveVid" />
+<meta name="rating" content="general" />
+
+<link rel="canonical" href="https://savevid.net/" />
+<link rel="alternate" hreflang="en" href="https://savevid.net/" />
+<link rel="alternate" hreflang="x-default" href="https://savevid.net/" />
+<link rel="manifest" href="/manifest.webmanifest" />
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="SaveVid.net" />
+<meta property="og:title" content="SaveVid.net — YouTube Video Downloader | MP3, MP4, 4K" />
+<meta property="og:description" content="Download YouTube videos in MP4, MP3, WAV and up to 4K in seconds. Free, no signup, no watermark." />
+<meta property="og:url" content="https://savevid.net/" />
+<meta property="og:locale" content="en_US" />
+<meta property="og:image" content="https://savevid.net/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="SaveVid.net — free video downloader" />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:site" content="@savevidnet" />
+<meta name="twitter:creator" content="@savevidnet" />
+<meta name="twitter:title" content="SaveVid.net — YouTube Video Downloader" />
+<meta name="twitter:description" content="Download YouTube videos in MP4, MP3, WAV and up to 4K. Free, fast, no signup." />
+<meta name="twitter:image" content="https://savevid.net/og-image.png" />
+
+<link rel="icon" href="/icons/favicon-32.png" sizes="32x32" />
+<link rel="icon" href="/icons/icon-192.png" sizes="192x192" type="image/png" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+
+<!-- AdSense loads lazily and only after the page is interactive. A blocking
+     script in the head is the single most common cause of a rejected site:
+     it delays first paint, and it burns impressions before a user has seen
+     anything. See the loader in app.js. -->
+<script>
+window.adsenseClient = 'ca-pub-0000000000000000';
+window.adsenseSlot = '0000000000';
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "SaveVid.net",
+  "alternateName": "SaveVid",
+  "url": "https://savevid.net/",
+  "applicationCategory": "MultimediaApplication",
+  "applicationSubCategory": "Video Downloader",
+  "operatingSystem": "Web browser (Android, iOS, Windows, macOS, Linux)",
+  "browserRequirements": "Requires JavaScript and a modern web browser",
+  "description": "Free online video and audio downloader. Save publicly available videos from YouTube and other supported platforms in MP4, MP3, WAV and up to 4K. No signup, no watermark, no limits.",
+  "inLanguage": "en",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD",
+    "availability": "https://schema.org/InStock"
+  },
+  "featureList": [
+    "Download YouTube videos in MP4 up to 4K",
+    "Convert video to MP3, WAV, M4A or FLAC",
+    "Download full playlists in one pass",
+    "No account or signup required",
+    "No watermark added",
+    "Works on mobile, desktop and tablet",
+    "Installable as a Progressive Web App",
+    "Chrome extension available"
+  ],
+  "author": { "@type": "Organization", "name": "SaveVid.net", "url": "https://savevid.net/" },
+  "publisher": {
+    "@type": "Organization",
+    "name": "SaveVid.net",
+    "logo": { "@type": "ImageObject", "url": "https://savevid.net/icons/icon-512.png" }
+  },
+  "image": "https://savevid.net/og-image.png",
+  "screenshot": "https://savevid.net/og-image.png"
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is SaveVid.net really free?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. SaveVid.net has no account, no trial and no paywall. Paste a link, pick a quality, and the file downloads straight to your device. The service is funded by advertising rather than by charging users." }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I download a YouTube video?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Copy the link to the video, paste it into the box on this page, and the available formats appear within a couple of seconds. Click the quality you want and the download starts immediately in your browser's download manager. On a phone, tap the box and choose Paste." }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I download videos in 4K and 1080p?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Up to 2160p, but only when the original upload is that high. SaveVid.net shows exactly which qualities exist for each video rather than upscaling or inventing options that are not there." }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I convert a video to MP3?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Paste the link as normal, then choose MP3 from the audio options. SaveVid.net extracts the audio at the highest bitrate the source provides, so the result is as good as the original upload." }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I download a whole playlist?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Copy the playlist URL and paste it into the same box. Every video in the playlist is queued in one pass, and you can stop the queue at any point." }
+    },
+    {
+      "@type": "Question",
+      "name": "Do you store my files or my links?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. Files stream directly from the source platform to your device and are never written to our disk. A link is held in memory for a few seconds so a repeat request is fast, then expires within minutes." }
+    },
+    {
+      "@type": "Question",
+      "name": "Is it legal to download YouTube videos?",
+      "acceptedAnswer": { "@type": "Answer", "text": "It depends on the content and your jurisdiction. Downloading your own uploads, Creative Commons material, public domain works, or anything you have written permission for is generally fine. Downloading copyrighted work without permission is not, and SaveVid.net does not support that use. When unsure, do not do it." }
+    },
+    {
+      "@type": "Question",
+      "name": "Which platforms does SaveVid.net support?",
+      "acceptedAnswer": { "@type": "Answer", "text": "YouTube, TikTok, Instagram, Facebook, X, SoundCloud, Vimeo and Dailymotion. Paste a link from any of them into the same box and the site detects the platform automatically." }
+    },
+    {
+      "@type": "Question",
+      "name": "Why did my download fail?",
+      "acceptedAnswer": { "@type": "Answer", "text": "The usual causes are a private or members-only video, an age-restricted video, a link that has been region blocked, a live stream that has not ended, or content the platform is still processing. Try a different video to confirm the service itself is working." }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I install SaveVid.net on my phone?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. It is a Progressive Web App. On Android Chrome, tap Install App in the banner or the browser menu and choose Install. On iOS, use Share then Add to Home Screen. On desktop, use the install icon in the address bar." }
+    }
+  ]
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Home", "item": "https://savevid.net/" }]
+}
+</script>
+
+<link rel="stylesheet" href="styles.css" />
+</head>
+
+<body class="min-h-screen bg-slate-50 font-sans text-slate-800 antialiased transition-colors duration-300 dark:bg-[#070b12] dark:text-slate-200">
+
+  <!-- ══════════════════════════════════════════════════ skip link -->
+  <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-brand-500 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white">
+    Skip to content
+  </a>
+
+  <!-- ══════════════════════════════════════════════════ ambient bg -->
+  <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
+    <div class="absolute -left-32 -top-32 h-[520px] w-[520px] animate-drift rounded-full bg-brand-500/20 blur-[110px] dark:bg-brand-500/25"></div>
+    <div class="absolute -bottom-40 -right-24 h-[460px] w-[460px] animate-drift rounded-full bg-emerald-400/15 blur-[110px] dark:bg-emerald-400/15 [animation-delay:-7s]"></div>
+    <div class="absolute left-1/2 top-1/3 h-[380px] w-[380px] animate-drift rounded-full bg-violet-500/10 blur-[110px] dark:bg-violet-500/12 [animation-delay:-13s]"></div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════ header -->
+  <header id="siteHeader" class="sticky top-0 z-50 border-b border-transparent bg-white/80 backdrop-blur-xl transition-all duration-300 dark:bg-[#070b12]/75">
+
+    <div class="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
+
+      <!-- brand -->
+      <a href="/" class="group flex shrink-0 items-center gap-2.5" aria-label="SaveVid.net home">
+        <span class="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-brand-400 to-violet-500 text-white shadow-lg shadow-brand-500/30 transition-all duration-300 group-hover:-translate-y-0.5 group-hover:rotate-[-8deg] group-hover:shadow-xl">
+          <svg viewBox="0 0 24 24" fill="none" class="h-5 w-5" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3.5v10.5m0 0 3.8-3.8M12 14l-3.8-3.8"/>
+            <path d="M4 16.5v2.2A2.3 2.3 0 0 0 6.3 21h11.4a2.3 2.3 0 0 0 2.3-2.3v-2.2"/>
+          </svg>
+        </span>
+        <span class="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white">SaveVid<span class="text-brand-500">.net</span></span>
+      </a>
+
+      <!-- desktop nav -->
+      <nav class="mx-auto hidden items-center gap-0.5 lg:flex" aria-label="Main">
+        <a href="#downloader" class="nav-link is-active">Youtube Video Downloader</a>
+        <a href="#features"   class="nav-link">4K Video Downloader</a>
+        <a href="#features"   class="nav-link">Youtube to MP3</a>
+        <a href="#faq"        class="nav-link">Youtube Playlist Downloader</a>
+        <a href="#features"   class="nav-link">Youtube to WAV</a>
+        <a href="#features"   class="nav-link">Youtube 1080P Downloader</a>
+      </nav>
+
+      <div class="ml-auto flex items-center gap-2 lg:ml-0">
+        <!-- theme toggle -->
+        <button id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="Toggle dark mode"
+                class="group relative h-7 w-[52px] shrink-0 rounded-full border border-slate-200 bg-slate-100 p-1 transition-all duration-300 hover:border-brand-400 hover:shadow-md hover:shadow-brand-500/20 dark:border-white/15 dark:bg-white/10">
+          <span class="absolute left-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-white shadow-md transition-transform duration-300 ease-[cubic-bezier(.22,1,.36,1)] dark:bg-slate-800">
+            <svg class="h-3 w-3 text-amber-500 dark:hidden" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/></svg>
+            <svg class="hidden h-3 w-3 text-indigo-300 dark:block" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+          </span>
+          <span class="sr-only">Switch theme</span>
+        </button>
+
+        <!-- mobile menu -->
+        <button id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileNav"
+                class="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 transition-all hover:border-brand-400 hover:text-brand-500 dark:border-white/15 dark:text-slate-300 dark:hover:border-brand-500">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path id="menuIcon" d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- mobile nav -->
+    <nav id="mobileNav" class="hidden overflow-hidden border-t border-slate-200 bg-white dark:border-white/10 dark:bg-[#0b111c]" aria-label="Mobile">
+      <div class="px-4 py-3">
+        <a href="#downloader" class="nav-link block">Youtube Video Downloader</a>
+        <a href="#features"   class="nav-link block">4K Video Downloader</a>
+        <a href="#features"   class="nav-link block">Youtube to MP3</a>
+        <a href="#faq"        class="nav-link block">Youtube Playlist Downloader</a>
+        <a href="#features"   class="nav-link block">Youtube to WAV</a>
+        <a href="#features"   class="nav-link block">Youtube 1080P Downloader</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main">
+
+    <!-- ════════════════════════════════════════════════════════════ hero -->
+    <section id="downloader" class="relative overflow-hidden px-4 pb-16 pt-16 sm:px-6 sm:pt-20 lg:px-8">
+
+      <!-- floating decorations -->
+      <div class="pointer-events-none absolute inset-0 hidden md:block" aria-hidden="true">
+        <div class="absolute left-[6%] top-[26%] animate-floaty">
+          <span class="grid h-14 w-20 place-items-center rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 shadow-xl shadow-rose-500/25">
+            <svg viewBox="0 0 24 24" class="h-7 w-7 fill-white"><path d="M23 12s0-3.3-.4-4.9a2.6 2.6 0 0 0-1.8-1.8C19 5 12 5 12 5s-7 0-8.8.4A2.6 2.6 0 0 0 1.4 7.2C1 8.7 1 12 1 12s0 3.3.4 4.9a2.6 2.6 0 0 0 1.8 1.8C5 19 12 19 12 19s7 0 8.8-.4a2.6 2.6 0 0 0 1.8-1.8C23 15.3 23 12 23 12ZM9.8 15.3V8.7l5.9 3.3-5.9 3.3Z"/></svg>
+          </span>
+        </div>
+        <div class="absolute right-[8%] top-[20%] animate-floaty [animation-delay:-2s]">
+          <span class="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 shadow-xl shadow-emerald-500/25">
+            <svg viewBox="0 0 24 24" class="h-6 w-6 fill-white"><path d="M9 18V5l11-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm11-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+          </span>
+        </div>
+        <div class="absolute left-[11%] bottom-[22%] animate-floaty [animation-delay:-4s]">
+          <span class="grid h-11 w-11 place-items-center rounded-full bg-gradient-to-br from-brand-400 to-violet-500 shadow-xl shadow-brand-500/30">
+            <svg viewBox="0 0 24 24" class="h-5 w-5 translate-x-0.5 fill-white"><path d="M8 5.2v13.6a1 1 0 0 0 1.5.9l11-6.8a1 1 0 0 0 0-1.7l-11-6.9A1 1 0 0 0 8 5.2Z"/></svg>
+          </span>
+        </div>
+        <svg class="absolute right-[16%] bottom-[26%] h-6 w-6 animate-twinkle fill-amber-400 [animation-delay:-1s]" viewBox="0 0 24 24"><path d="m12 2 2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4L12 2Z"/></svg>
+        <svg class="absolute left-[19%] top-[14%] h-4 w-4 animate-twinkle fill-brand-400 [animation-delay:-2.2s]" viewBox="0 0 24 24"><path d="m12 2 2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4L12 2Z"/></svg>
+        <svg class="absolute right-[5%] top-[42%] h-3.5 w-3.5 animate-twinkle fill-violet-400 [animation-delay:-1.4s]" viewBox="0 0 24 24"><path d="m12 2 2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4L12 2Z"/></svg>
+      </div>
+
+      <div class="relative mx-auto max-w-4xl text-center">
+
+        <!-- trust pill -->
+        <div class="animate-rise inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-3.5 py-1.5 text-[12px] font-semibold text-slate-600 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-300">
+          <span class="relative flex h-1.5 w-1.5">
+            <span class="absolute inline-flex h-full w-full rounded-full bg-emerald-400 animate-pulseRing"></span>
+            <span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+          </span>
+          No signup · No watermark · 100% free
+        </div>
+
+        <h1 class="animate-rise mt-5 text-4xl font-extrabold leading-[1.1] tracking-tight text-slate-900 dark:text-white [animation-delay:80ms] sm:text-5xl lg:text-6xl">
+          YouTube Video
+          <span class="relative inline-block">
+            Downloader
+            <svg class="absolute -bottom-2 left-0 h-3 w-full text-brand-500 sm:h-4" viewBox="0 0 300 14" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M3 10.5C60 4 130 2.5 297 7" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-dasharray="340" class="origin-left animate-drawLine"/>
+            </svg>
+          </span>
+        </h1>
+
+        <p class="animate-rise mx-auto mt-7 max-w-2xl text-[15px] leading-relaxed text-slate-600 [animation-delay:160ms] dark:text-slate-400 sm:text-base">
+          Save any YouTube video in seconds. Convert to MP3 or WAV, grab full
+          playlists in one go, or download in crisp 4K and 1080p. Fast, free,
+          and no sign-up required.
+        </p>
+
+        <!-- PWA install. Hidden until the browser reports the app is installable
+             (beforeinstallprompt on Chromium), so Safari and Firefox users never
+             see a button that cannot work. -->
+        <div id="installBar"
+             class="animate-rise mx-auto mt-6 hidden max-w-2xl items-center gap-3 rounded-2xl border border-brand-500/25 bg-brand-500/[0.07] p-3.5 text-left [animation-delay:200ms] sm:p-4">
+          <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-500 text-white shadow-lg shadow-brand-500/30">
+            <svg class="h-5 w-5 shrink-0" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M12 15l-4-4M12 15l4-4M5 20h14"/></svg>
+          </span>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-bold text-slate-900 dark:text-white">Install SaveVid</p>
+            <p class="mt-0.5 text-xs text-slate-600 dark:text-slate-400">Works offline, opens in its own window, launches like a native app.</p>
+          </div>
+          <button id="installBtn" type="button"
+                  class="shrink-0 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600 active:scale-95">
+            Install
+          </button>
+          <button id="installClose" type="button" aria-label="Dismiss install prompt"
+                  class="shrink-0 rounded-lg p-1.5 text-slate-400 transition hover:text-slate-600 dark:hover:text-slate-200">
+            <svg class="h-5 w-5 shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════ input card -->
+        <div class="animate-rise mx-auto mt-10 max-w-3xl [animation-delay:240ms]">
+          <div id="dlCard" class="rounded-2xl border border-slate-200/80 bg-white/85 p-2.5 shadow-2xl shadow-slate-900/10 backdrop-blur-xl transition-all duration-300 dark:border-white/10 dark:bg-white/[0.06] dark:shadow-black/40 focus-within:border-brand-400 focus-within:shadow-2xl focus-within:shadow-brand-500/20">
+
+            <div class="flex flex-col gap-2.5 sm:flex-row">
+              <!-- format -->
+              <div class="relative shrink-0">
+                <select id="format" aria-label="Output format"
+                        class="w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-4 pr-9 text-sm font-semibold text-slate-700 outline-none transition-all duration-200 hover:border-brand-400 hover:bg-white focus:border-brand-500 sm:w-[112px] dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-200 dark:hover:bg-white/10">
+                  <option value="mp4">MP4</option>
+                  <option value="mp3">MP3</option>
+                  <option value="wav">WAV</option>
+                  <option value="m4a">M4A</option>
+                  <option value="webm">WebM</option>
+                  <option value="flac">FLAC</option>
+                </select>
+                <svg id="fmtChevron" class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+
+              <!-- quality -->
+              <div class="relative shrink-0">
+                <select id="quality" aria-label="Video quality"
+                        class="w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-4 pr-9 text-sm font-semibold text-slate-700 outline-none transition-all duration-200 hover:border-brand-400 hover:bg-white focus:border-brand-500 sm:w-[124px] dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-200 dark:hover:bg-white/10">
+                  <option value="best">Best</option>
+                  <option value="2160">4K · 2160p</option>
+                  <option value="1440">2K · 1440p</option>
+                  <option value="1080">HD · 1080p</option>
+                  <option value="720">HD · 720p</option>
+                  <option value="480">SD · 480p</option>
+                  <option value="360">SD · 360p</option>
+                </select>
+                <svg id="qtyChevron" class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+
+              <!-- url -->
+              <div class="relative flex-1">
+                <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" class="h-[18px] w-[18px]">
+                    <path d="M10 13a5 5 0 0 0 7.1.1l3-3a5 5 0 0 0-7.1-7.1L11.3 4.7M14 11a5 5 0 0 0-7.1-.1l-3 3a5 5 0 0 0 7.1 7.1l1.7-1.7"/>
+                  </svg>
+                </span>
+                <input id="urlInput" type="url" spellcheck="false" autocomplete="off"
+                       placeholder="Paste your link here..."
+                       class="w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-20 text-sm text-slate-800 outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-brand-400 hover:bg-white focus:border-brand-500 dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/10" />
+                <!-- paste button -->
+                <button id="pasteBtn" type="button" title="Paste from clipboard"
+                        class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11.5px] font-semibold text-slate-600 transition-all duration-200 hover:border-brand-400 hover:text-brand-500 active:scale-95 dark:border-white/10 dark:bg-white/10 dark:text-slate-300">
+                  <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="8" height="4" rx="1.2"/><path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/></svg>
+                  Paste
+                </button>
+              </div>
+
+              <!-- download -->
+              <button id="dlBtn" type="button"
+                      class="group relative shrink-0 overflow-hidden rounded-xl bg-brand-500 px-7 py-3.5 text-sm font-bold text-white shadow-lg shadow-brand-500/30 transition-all duration-200 hover:scale-[1.04] hover:bg-brand-600 hover:shadow-xl hover:shadow-brand-500/45 active:scale-95 sm:w-auto">
+                <span class="relative z-10 flex items-center justify-center gap-2">
+                  <span id="dlLabel">Download</span>
+                  <svg class="h-4 w-4 transition-transform duration-300 group-hover:translate-y-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3.5v10.5m0 0 3.8-3.8M12 14l-3.8-3.8M4 16.5v2.2A2.3 2.3 0 0 0 6.3 21h11.4a2.3 2.3 0 0 0 2.3-2.3v-2.2"/>
+                  </svg>
+                </span>
+                <span class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full"></span>
+              </button>
+            </div>
+
+            <!-- progress -->
+            <div id="progress" class="hidden px-2 pb-1 pt-3">
+              <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
+                <div id="progressBar" class="h-full w-0 rounded-full bg-gradient-to-r from-brand-400 to-violet-500 transition-[width] duration-300"></div>
+              </div>
+              <div class="mt-2 flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400">
+                <span id="progressText">Preparing…</span>
+                <span id="progressPct">0%</span>
+              </div>
+            </div>
+
+            <!-- error -->
+            <p id="dlError" class="hidden px-3 py-2.5 text-sm font-medium text-rose-600 dark:text-rose-400"></p>
+          </div>
+
+          <!-- ══════════════════════════════════ detected media + options -->
+          <div id="mediaPanel" class="mt-4 hidden" aria-live="polite">
+
+            <!-- header: platform tag, title, duration -->
+            <div class="flex items-start gap-4 rounded-2xl border border-slate-200/80 bg-white/85 p-4 shadow-xl shadow-slate-900/5 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04]">
+              <div id="thumbWrap" class="hidden h-[72px] w-[128px] shrink-0 overflow-hidden rounded-xl bg-slate-900/5 sm:block dark:bg-white/5">
+                <img id="thumb" alt="" class="h-full w-full object-cover" />
+              </div>
+
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <span id="platTag"
+                        class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold text-white"
+                        style="background:#2f6bff">
+                    <span class="h-1.5 w-1.5 rounded-full bg-white/80"></span>
+                    <span id="platName">Video</span>
+                  </span>
+                  <span id="metaDur" class="text-xs font-semibold text-slate-500 dark:text-slate-400"></span>
+                </div>
+                <h3 id="metaTitle"
+                    class="mt-2 line-clamp-2 text-sm font-bold leading-snug text-slate-800 dark:text-slate-100"></h3>
+                <p id="metaBy" class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400"></p>
+              </div>
+
+              <button id="metaReset" type="button" title="Clear"
+                      class="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-slate-200">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+
+            <!-- skeletons while the probe runs -->
+            <div id="optSkeleton" class="mt-3 space-y-3">
+              <div class="skel-row"></div><div class="skel-row"></div><div class="skel-row"></div>
+            </div>
+
+            <!-- real options -->
+            <div id="optList" class="mt-3 hidden space-y-4">
+              <div>
+                <p class="opt-h5">Video</p>
+                <div id="optVideo" class="grid grid-cols-2 gap-2 sm:grid-cols-3"></div>
+              </div>
+              <div>
+                <p class="opt-h5">Audio</p>
+                <div id="optAudio" class="grid grid-cols-2 gap-2 sm:grid-cols-3"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ═══════════════════════════════════════════ policy banner -->
+          <div class="mt-4 flex items-start gap-3 rounded-xl border border-amber-500/25 bg-slate-900 px-4 py-3.5 text-left shadow-lg shadow-black/20 dark:border-amber-500/20">
+            <svg class="mt-0.5 h-4 w-4 shrink-0 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M12 9v4m0 3.5v.01M10.3 3.9 2.4 17.5A1.9 1.9 0 0 0 4 20.3h16a1.9 1.9 0 0 0 1.6-2.8L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z"/>
+            </svg>
+            <p class="text-[13px] font-bold uppercase tracking-wide text-amber-300">
+              We do not allow/support the download of copyrighted material!
+            </p>
+          </div>
+
+          <p class="mt-4 text-xs text-slate-500 dark:text-slate-500">
+            By using this tool you confirm the content is yours, licensed, or permitted.
+          </p>
+        </div>
+      </div>
+
+
+      <!-- ══════════════════════════════════════════════════ stat strip -->
+      <div class="reveal mx-auto mt-16 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4">
+        <div class="stat"><span class="stat-num" data-count="2" data-suffix="s">0</span><span class="stat-label">Average fetch time</span></div>
+        <div class="stat"><span class="stat-num" data-count="8" data-suffix="+">0</span><span class="stat-label">Platforms supported</span></div>
+        <div class="stat"><span class="stat-num" data-count="4" data-suffix="K">0</span><span class="stat-label">Max resolution</span></div>
+        <div class="stat"><span class="stat-num" data-count="0" data-suffix="">0</span><span class="stat-label">Signup required</span></div>
+      </div>
+    </section>
+
+    <!-- ═════════════════════════════════════════════════════════ marquee -->
+<!-- ══════════════════════════════════════════════════ platform marquee -->
+<!-- Brand paths from Simple Icons (CC0-1.0). Rendered as white artwork on
+     each platform's own brand colour, inside a rounded tile.               -->
+<div class="marquee-mask relative overflow-hidden border-y border-slate-200/70 py-5 transition-colors duration-300 dark:border-white/10" aria-label="Supported platforms">
+  <div class="marquee-track flex w-max items-center gap-3">
+
+    <a href="#downloader" class="marquee-tile" style="--tile:#FF0000" title="YouTube">
+      <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814ZM9.545 15.568V8.432L15.818 12l-6.273 3.568Z"/></svg>
+      <span>YouTube</span>
+    </a>
+
+    <a href="#downloader" class="marquee-tile" style="--tile:#0866FF" title="Facebook">
+      <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.043-1.666.132-.438.095-.761.25-.985.468-.223.216-.39.53-.502.94-.112.41-.168.975-.168 1.696v1.234h3.331l-.386 3.667h-2.945v7.98Z"/></svg>
+      <span>Facebook</span>
+    </a>
+
+    <a href="#downloader" class="marquee-tile" style="--tile:#E4405F" title="Instagram">
+      <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.741 0 12s.015 3.668.072 4.948c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.741 24 12 24s3.668-.015 4.948-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.668-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.259 0 12 0Zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.815.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03Zm0 3.678a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324ZM12 16c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4Zm7.846-10.405a1.441 1.441 0 0 1-2.88 0 1.44 1.44 0 0 1 2.88 0Z"/></svg>
+      <span>Instagram</span>
+    </a>
+
+    <a href="#downloader" class="marquee-tile" style="--tile:#000000" title="TikTok">
+      <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07Z"/></svg>
+      <span>TikTok</span>
+    </a>
+
+    <a href="#downloader" class="marquee-tile" style="--tile:#000000" title="X (Twitter)">
+      <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.109L.258 24h2.072l8.304-9.476L17.743 24h6.996L14.234 10.162Zm-2.983 3.4-.817-1.17L3.833 1.5h2.8l5.633 8.08.789 1.13 6.568 9.41h-2.8l-5.572-7.998Z"/></svg>
+      <span>X / Twitter</span>
+    </a>
+
+    <a href="#downloader" class="marquee-tile" style="--tile:#FF5500" title="SoundCloud">
+      <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.999 14.165c-.052 1.796-1.612 3.169-3.4 3.169h-8.18a.66.66 0 0 1-.66-.66V5.51a.66.66 0 0 1 .66-.66h4.917c3.4 0 6.109 2.674 6.663 6.315ZM6.26 6.372a.66.66 0 0 0-.66.66v9.996c0 .364.29.66.66.66h.79V5.71a.66.66 0 0 0-.79-.66H6.26Zm-2.87 1.83c-.367 0-.66.293-.66.66v8.306c0 .366.293.66.66.66h.79V7.86c0-.367-.423-.66-.79-.66H3.39Zm3.2.82c-.366 0-.66.293-.66.66v7.48c0 .366.294.66.66.66h.79V8.68c0-.367-.423-.66-.79-.66h-.79Z"/></svg>
+      <span>SoundCloud</span>
+    </a>
+
+    <a href="#downloader" class="marquee-tile" style="--tile:#1AB7EA" title="Vimeo">
+      <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.9765 6.4168c-.105 2.338-1.739 5.5429-4.894 9.6088-3.2679 4.308-6.021 6.4565-8.242 6.4457-1.328-.0133-2.4503-1.2222-3.3661-3.6711-.6558-1.8682-1.2728-3.7967-1.8531-5.7689-.6704-2.2016-1.1083-3.5898-1.3134-4.1741-.2849-1.1055-2.0555-1.7241-5.3114-1.8551-1.0544-.042-2.0324.0244-2.9339.2v-2.9c1.9137-.5064 3.6562-.7617 5.2275-.7663 1.6624.0053 2.9453.4422 3.8508 1.31 1.0272 1.0207 1.5522 2.1904 1.5751 3.5106.0046.3009 0 .6022-.0125.9042-.0669 1.8181-.2812 2.7635-.6434h.03c1.8512-.2323 3.0873-.6633 3.7083-1.2925.6823-1.0092.63-2.3182-.1567-3.9256-.7112-1.4614-2.1258-2.1892-4.2445-2.1892h-.0305c-2.1235 0-3.7904.7304-4.9954 2.1878 1.0215-4.7885 4.0954-7.1644 8.1268-7.1653 1.0719 0 2.0908.2088 3.0525.6264-.7793 2.0022-1.1325 3.8196-1.1325Z"/></svg>
+      <span>Vimeo</span>
+    </a>
+
+    <a href="#downloader" class="marquee-tile" style="--tile:#0066DC" title="Dailymotion">
+      <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.823 7.327a11.928 11.928 0 0 0-2.606-3.814 12.126 12.126 0 0 0-2.79-1.867 11.64 11.64 0 0 0-3.13-.601c-1.19 0-2.244.199-3.164.594-1.24.515-2.286 1.42-2.904 2.517a4.36 4.36 0 0 0-.6 1.5 4.7 4.7 0 0 0 .12 1.25c.008.06.013.12.02.18a.4.4 0 0 0 .005.08l.02.16.01.1.01.13v.02l.02.2v.01l.03.21.01.1.03.17.01.08.04.22.01.09.06.24.01.1.09.28.01.05.12.3.01.04.15.32.01.03.18.34.01.03.2.35a5.64 5.64 0 0 0 2.32 2.42 8.2 8.2 0 0 0 3.09.58c.86 0 1.67-.16 2.44-.47a5.06 5.06 0 0 0 2.14-1.8 4.1 4.1 0 0 0 .57-1.53 3.3 3.3 0 0 0 .09-.9c-.02-.35-.11-.7-.23-1.1-.09-.35-.23-.7-.4-1.1-.19-.4-.41-.8-.67-1.25a7.5 7.5 0 0 0-.94-1.35 5.4 5.4 0 0 0-1.3-1.1 4.55 4.55 0 0 0-3.52.1c-.27.09-.52.2-.76.35l-.4.2a6.5 6.5 0 0 0-.66.34c.03-.09.06-.19.11-.28.24-.6.65-1.1 1.21-1.5a3.7 3.7 0 0 1 4.1-.2c.55.32 1.03.78 1.4 1.35.4.58.72 1.26.95 2.04h3.5a8.03 8.03 0 0 0-.4-1.4Z"/></svg>
+      <span>Dailymotion</span>
+    </a>
+
+    <!-- duplicate set — makes the marquee loop seamlessly -->
+    <a href="#downloader" class="marquee-tile" style="--tile:#FF0000" title="YouTube" aria-hidden="true">
+      <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814ZM9.545 15.568V8.432L15.818 12l-6.273 3.568Z"/></svg>
+      <span>YouTube</span>
+    </a>
+    <a href="#downloader" class="marquee-tile" style="--tile:#0866FF" title="Facebook" aria-hidden="true">
+      <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.043-1.666.132-.438.095-.761.25-.985.468-.223.216-.39.53-.502.94-.112.41-.168.975-.168 1.696v1.234h3.331l-.386 3.667h-2.945v7.98Z"/></svg>
+      <span>Facebook</span>
+    </a>
+    <a href="#downloader" class="marquee-tile" style="--tile:#E4405F" title="Instagram" aria-hidden="true">
+      <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.741 0 12s.015 3.668.072 4.948c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.741 24 12 24s3.668-.015 4.948-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.668-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.259 0 12 0Zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.815.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03Zm0 3.678a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324ZM12 16c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4Zm7.846-10.405a1.441 1.441 0 0 1-2.88 0 1.44 1.44 0 0 1 2.88 0Z"/></svg>
+      <span>Instagram</span>
+    </a>
+    <a href="#downloader" class="marquee-tile" style="--tile:#000000" title="TikTok" aria-hidden="true">
+      <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07Z"/></svg>
+      <span>TikTok</span>
+    </a>
+    <a href="#downloader" class="marquee-tile" style="--tile:#000000" title="X (Twitter)" aria-hidden="true">
+      <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.109L.258 24h2.072l8.304-9.476L17.743 24h6.996L14.234 10.162Zm-2.983 3.4-.817-1.17L3.833 1.5h2.8l5.633 8.08.789 1.13 6.568 9.41h-2.8l-5.572-7.998Z"/></svg>
+      <span>X / Twitter</span>
+    </a>
+    <a href="#downloader" class="marquee-tile" style="--tile:#FF5500" title="SoundCloud" aria-hidden="true">
+      <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M23.999 14.165c-.052 1.796-1.612 3.169-3.4 3.169h-8.18a.66.66 0 0 1-.66-.66V5.51a.66.66 0 0 1 .66-.66h4.917c3.4 0 6.109 2.674 6.663 6.315ZM6.26 6.372a.66.66 0 0 0-.66.66v9.996c0 .364.29.66.66.66h.79V5.71a.66.66 0 0 0-.79-.66H6.26Zm-2.87 1.83c-.367 0-.66.293-.66.66v8.306c0 .366.293.66.66.66h.79V7.86c0-.367-.423-.66-.79-.66H3.39Zm3.2.82c-.366 0-.66.293-.66.66v7.48c0 .366.294.66.66.66h.79V8.68c0-.367-.423-.66-.79-.66h-.79Z"/></svg>
+      <span>SoundCloud</span>
+    </a>
+    <a href="#downloader" class="marquee-tile" style="--tile:#1AB7EA" title="Vimeo" aria-hidden="true">
+      <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M23.9765 6.4168c-.105 2.338-1.739 5.5429-4.894 9.6088-3.2679 4.308-6.021 6.4565-8.242 6.4457-1.328-.0133-2.4503-1.2222-3.3661-3.6711-.6558-1.8682-1.2728-3.7967-1.8531-5.7689-.6704-2.2016-1.1083-3.5898-1.3134-4.1741-.2849-1.1055-2.0555-1.7241-5.3114-1.8551-1.0544-.042-2.0324.0244-2.9339.2v-2.9c1.9137-.5064 3.6562-.7617 5.2275-.7663 1.6624.0053 2.9453.4422 3.8508 1.31 1.0272 1.0207 1.5522 2.1904 1.5751 3.5106.0046.3009 0 .6022-.0125.9042-.0669 1.8181-.2812 2.7635-.6434h.03c1.8512-.2323 3.0873-.6633 3.7083-1.2925.6823-1.0092.63-2.3182-.1567-3.9256-.7112-1.4614-2.1258-2.1892-4.2445-2.1892h-.0305c-2.1235 0-3.7904.7304-4.9954 2.1878 1.0215-4.7885 4.0954-7.1644 8.1268-7.1653 1.0719 0 2.0908.2088 3.0525.6264-.7793 2.0022-1.1325 3.8196-1.1325Z"/></svg>
+      <span>Vimeo</span>
+    </a>
+    <a href="#downloader" class="marquee-tile" style="--tile:#0066DC" title="Dailymotion" aria-hidden="true">
+      <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M21.823 7.327a11.928 11.928 0 0 0-2.606-3.814 12.126 12.126 0 0 0-2.79-1.867 11.64 11.64 0 0 0-3.13-.601c-1.19 0-2.244.199-3.164.594-1.24.515-2.286 1.42-2.904 2.517a4.36 4.36 0 0 0-.6 1.5 4.7 4.7 0 0 0 .12 1.25c.008.06.013.12.02.18a.4.4 0 0 0 .005.08l.02.16.01.1.01.13v.02l.02.2v.01l.03.21.01.1.03.17.01.08.04.22.01.09.06.24.01.1.09.28.01.05.12.3.01.04.15.32.01.03.18.34.01.03.2.35a5.64 5.64 0 0 0 2.32 2.42 8.2 8.2 0 0 0 3.09.58c.86 0 1.67-.16 2.44-.47a5.06 5.06 0 0 0 2.14-1.8 4.1 4.1 0 0 0 .57-1.53 3.3 3.3 0 0 0 .09-.9c-.02-.35-.11-.7-.23-1.1-.09-.35-.23-.7-.4-1.1-.19-.4-.41-.8-.67-1.25a7.5 7.5 0 0 0-.94-1.35 5.4 5.4 0 0 0-1.3-1.1 4.55 4.55 0 0 0-3.52.1c-.27.09-.52.2-.76.35l-.4.2a6.5 6.5 0 0 0-.66.34c.03-.09.06-.19.11-.28.24-.6.65-1.1 1.21-1.5a3.7 3.7 0 0 1 4.1-.2c.55.32 1.03.78 1.4 1.35.4.58.72 1.26.95 2.04h3.5a8.03 8.03 0 0 0-.4-1.4Z"/></svg>
+      <span>Dailymotion</span>
+    </a>
+
+  </div>
+</div>
+
+    <!-- ══════════════════════════════════════════════════════ content -->
+    <!-- AdSense: top banner. The container reserves its height so it never
+         reflows the page or shoves the downloader down when it fills. -->
+    <div class="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8" aria-label="Advertisement">
+      <div class="ad-slot ad-leaderboard mx-auto" data-ad="top"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ how-to content ══ -->
+    <section id="how-to" class="border-t border-slate-200/70 px-4 py-20 transition-colors duration-300 dark:border-white/10 sm:px-6 lg:px-8">
+      <div class="mx-auto max-w-3xl">
+        <div class="reveal text-center">
+          <span class="eyebrow">How it works</span>
+          <h2 class="mt-2 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
+            How to download a video with SaveVid.net
+          </h2>
+          <p class="mx-auto mt-4 max-w-xl text-[15px] text-slate-600 dark:text-slate-400">
+            Four steps. It takes about as long as reading them.
+          </p>
+        </div>
+
+        <div class="mt-12 grid gap-5 sm:grid-cols-2">
+          <div class="reveal rounded-2xl border border-slate-200/80 bg-white/70 p-6 dark:border-white/10 dark:bg-white/[0.04]">
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-brand-500/12 text-lg font-extrabold text-brand-500">1</span>
+            <h3 class="mt-4 text-base font-bold text-slate-900 dark:text-white">Copy the video link</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+              Open the video on the platform and copy its address. On a phone, tap
+              the share icon and choose <em>Copy link</em>. SaveVid.net reads the link
+              straight from your clipboard as soon as you tap the box, so you often
+              never have to paste it yourself.
+            </p>
+          </div>
+
+          <div class="reveal rounded-2xl border border-slate-200/80 bg-white/70 p-6 [animation-delay:80ms] dark:border-white/10 dark:bg-white/[0.04]">
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-brand-500/12 text-lg font-extrabold text-brand-500">2</span>
+            <h3 class="mt-4 text-base font-bold text-slate-900 dark:text-white">Paste it into the box</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+              Tap the input field and paste. The title, thumbnail and every available
+              quality appear within a couple of seconds. A recent lookup is served
+              from cache, so a link you tried a moment ago comes back instantly.
+            </p>
+          </div>
+
+          <div class="reveal rounded-2xl border border-slate-200/80 bg-white/70 p-6 [animation-delay:160ms] dark:border-white/10 dark:bg-white/[0.04]">
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-brand-500/12 text-lg font-extrabold text-brand-500">3</span>
+            <h3 class="mt-4 text-base font-bold text-slate-900 dark:text-white">Pick a quality or an audio format</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+              Choose MP4 for video — 1080p, 720p, 480p and up to 4K when the original
+              upload supports it. Choose MP3, WAV, M4A or FLAC if you only want the
+              audio, extracted at the highest bitrate the source provides.
+            </p>
+          </div>
+
+          <div class="reveal rounded-2xl border border-slate-200/80 bg-white/70 p-6 [animation-delay:240ms] dark:border-white/10 dark:bg-white/[0.04]">
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-brand-500/12 text-lg font-extrabold text-brand-500">4</span>
+            <h3 class="mt-4 text-base font-bold text-slate-900 dark:text-white">The download starts on its own</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+              Click a format and your browser takes over immediately — the file goes
+              straight to your downloads folder or gallery with no extra page in
+              between. Nothing opens a new tab and nothing reloads.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═════════════════════════════════════════ supported platforms ══ -->
+    <section id="platforms" class="border-t border-slate-200/70 px-4 py-20 transition-colors duration-300 dark:border-white/10 sm:px-6 lg:px-8">
+      <div class="mx-auto max-w-3xl">
+        <div class="reveal text-center">
+          <span class="eyebrow">Supported platforms</span>
+          <h2 class="mt-2 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
+            Where SaveVid.net works
+          </h2>
+          <p class="mx-auto mt-4 max-w-xl text-[15px] text-slate-600 dark:text-slate-400">
+            Paste a link from any of these into the same box. The platform is
+            detected automatically — there is nothing to select.
+          </p>
+        </div>
+
+        <div class="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">          <div class="reveal flex items-start gap-3 rounded-2xl border border-slate-200/80 bg-white/70 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+            <div class="min-w-0">
+              <p class="text-sm font-bold text-slate-900 dark:text-white">YouTube</p>
+              <p class="mt-0.5 text-xs text-brand-500 dark:text-brand-400">youtube.com</p>
+              <p class="mt-1.5 text-[13px] leading-relaxed text-slate-600 dark:text-slate-400">Single videos, Shorts and full playlists, in every quality the uploader published.</p>
+            </div>
+          </div>
+          <div class="reveal flex items-start gap-3 rounded-2xl border border-slate-200/80 bg-white/70 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+            <div class="min-w-0">
+              <p class="text-sm font-bold text-slate-900 dark:text-white">TikTok</p>
+              <p class="mt-0.5 text-xs text-brand-500 dark:text-brand-400">tiktok.com</p>
+              <p class="mt-1.5 text-[13px] leading-relaxed text-slate-600 dark:text-slate-400">Public videos, without a watermark added by us.</p>
+            </div>
+          </div>
+          <div class="reveal flex items-start gap-3 rounded-2xl border border-slate-200/80 bg-white/70 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+            <div class="min-w-0">
+              <p class="text-sm font-bold text-slate-900 dark:text-white">Instagram</p>
+              <p class="mt-0.5 text-xs text-brand-500 dark:text-brand-400">instagram.com</p>
+              <p class="mt-1.5 text-[13px] leading-relaxed text-slate-600 dark:text-slate-400">Reels and public posts.</p>
+            </div>
+          </div>
+          <div class="reveal flex items-start gap-3 rounded-2xl border border-slate-200/80 bg-white/70 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+            <div class="min-w-0">
+              <p class="text-sm font-bold text-slate-900 dark:text-white">Facebook</p>
+              <p class="mt-0.5 text-xs text-brand-500 dark:text-brand-400">facebook.com &amp; fb.watch</p>
+              <p class="mt-1.5 text-[13px] leading-relaxed text-slate-600 dark:text-slate-400">Public videos shared by pages and profiles.</p>
+            </div>
+          </div>
+          <div class="reveal flex items-start gap-3 rounded-2xl border border-slate-200/80 bg-white/70 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+            <div class="min-w-0">
+              <p class="text-sm font-bold text-slate-900 dark:text-white">X (Twitter)</p>
+              <p class="mt-0.5 text-xs text-brand-500 dark:text-brand-400">x.com</p>
+              <p class="mt-1.5 text-[13px] leading-relaxed text-slate-600 dark:text-slate-400">Videos posted in public posts.</p>
+            </div>
+          </div>
+          <div class="reveal flex items-start gap-3 rounded-2xl border border-slate-200/80 bg-white/70 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+            <div class="min-w-0">
+              <p class="text-sm font-bold text-slate-900 dark:text-white">SoundCloud</p>
+              <p class="mt-0.5 text-xs text-brand-500 dark:text-brand-400">soundcloud.com</p>
+              <p class="mt-1.5 text-[13px] leading-relaxed text-slate-600 dark:text-slate-400">Audio, at the highest available bitrate.</p>
+            </div>
+          </div>
+          <div class="reveal flex items-start gap-3 rounded-2xl border border-slate-200/80 bg-white/70 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+            <div class="min-w-0">
+              <p class="text-sm font-bold text-slate-900 dark:text-white">Vimeo</p>
+              <p class="mt-0.5 text-xs text-brand-500 dark:text-brand-400">vimeo.com</p>
+              <p class="mt-1.5 text-[13px] leading-relaxed text-slate-600 dark:text-slate-400">Public and unlisted videos you can reach by link.</p>
+            </div>
+          </div>
+          <div class="reveal flex items-start gap-3 rounded-2xl border border-slate-200/80 bg-white/70 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+            <div class="min-w-0">
+              <p class="text-sm font-bold text-slate-900 dark:text-white">Dailymotion</p>
+              <p class="mt-0.5 text-xs text-brand-500 dark:text-brand-400">dailymotion.com</p>
+              <p class="mt-1.5 text-[13px] leading-relaxed text-slate-600 dark:text-slate-400">Public videos.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="reveal mt-10 rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] p-6 text-left">
+          <p class="text-sm font-bold text-slate-900 dark:text-white">A note on what is not supported</p>
+          <p class="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+            SaveVid.net cannot reach anything that is private, age-restricted, paid
+            only, region-blocked, or protected by DRM. That is not a limitation we
+            can engineer around, and we do not try. Supported is limited to content
+            that is publicly available to anyone holding the link.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="px-4 py-20 sm:px-6 lg:px-8">
+      <div class="mx-auto max-w-3xl">
+        <div class="reveal">
+          <span class="eyebrow">About</span>
+          <h2 class="relative mt-2 inline-block text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
+            What is SaveVid.net
+            <span class="absolute -bottom-1.5 left-0 h-1.5 w-16 rounded-full bg-gradient-to-r from-brand-500 to-violet-500"></span>
+          </h2>
+        </div>
+
+        <div class="reveal mt-8 space-y-5 text-[15px] leading-[1.85] text-slate-600 dark:text-slate-400 [animation-delay:80ms]">
+          <p>
+            <strong class="text-slate-800 dark:text-slate-200">SaveVid.net</strong> is a free
+            online YouTube video downloader built for speed and simplicity. Paste a link,
+            choose a format, and the file is on your device in seconds — no account,
+            no app install, no watermark.
+          </p>
+          <p>
+            You can convert a video to <strong class="text-slate-800 dark:text-slate-200">MP3</strong>
+            or <strong class="text-slate-800 dark:text-slate-200">WAV</strong> for offline
+            listening, download entire
+            <strong class="text-slate-800 dark:text-slate-200">playlists</strong> in a single
+            pass, or pull a single video in <strong class="text-slate-800 dark:text-slate-200">4K</strong>
+            and <strong class="text-slate-800 dark:text-slate-200">1080p</strong> when you need
+            the original quality. Every conversion runs on a modern pipeline, so large files
+            finish quickly even on a slow connection.
+          </p>
+          <p>
+            We do not store your files, and we do not ask for personal information.
+            The tool exists to help you archive content that is already yours or that
+            you have the right to save. Downloading copyrighted work without permission
+            is not permitted, and we do not support it.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════ features -->
+    <section id="features" class="border-t border-slate-200/70 px-4 py-20 transition-colors duration-300 dark:border-white/10 sm:px-6 lg:px-8">
+      <div class="mx-auto max-w-6xl">
+        <div class="reveal mx-auto max-w-2xl text-center">
+          <span class="eyebrow">Why SaveVid.net</span>
+          <h2 class="mt-2 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
+            Built to be quick, private and free
+          </h2>
+        </div>
+
+        <div class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="feature-card reveal">
+            <span class="feature-icon bg-brand-500/10 text-brand-500 dark:text-brand-400">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M12 3.5v10.5m0 0 3.8-3.8M12 14l-3.8-3.8M4 16.5v2.2A2.3 2.3 0 0 0 6.3 21h11.4a2.3 2.3 0 0 0 2.3-2.3v-2.2"/></svg>
+            </span>
+            <h3 class="mt-4 text-sm font-bold text-slate-900 dark:text-white">Blazing fast</h3>
+            <p class="mt-1.5 text-[13px] leading-relaxed text-slate-500 dark:text-slate-400">Parallel connections mean a 200 MB video finishes in a fraction of the time.</p>
+          </div>
+          <div class="feature-card reveal [animation-delay:60ms]">
+            <span class="feature-icon bg-emerald-500/10 text-emerald-500 dark:text-emerald-400">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M12 3 4 6.5v5c0 4.7 3.4 8.4 8 9.5 4.6-1.1 8-4.8 8-9.5v-5L12 3Z"/><path d="m9 12 2 2 4-4"/></svg>
+            </span>
+            <h3 class="mt-4 text-sm font-bold text-slate-900 dark:text-white">No signup</h3>
+            <p class="mt-1.5 text-[13px] leading-relaxed text-slate-500 dark:text-slate-400">No login, no email, no paywall. Paste the link and download.</p>
+          </div>
+          <div class="feature-card reveal [animation-delay:120ms]">
+            <span class="feature-icon bg-violet-500/10 text-violet-500 dark:text-violet-400">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M9 18V5l11-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm11-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+            </span>
+            <h3 class="mt-4 text-sm font-bold text-slate-900 dark:text-white">Any format</h3>
+            <p class="mt-1.5 text-[13px] leading-relaxed text-slate-500 dark:text-slate-400">MP4, MP3, WAV, M4A, WebM, FLAC — pick what fits your device.</p>
+          </div>
+          <div class="feature-card reveal">
+            <span class="feature-icon bg-amber-500/10 text-amber-500 dark:text-amber-400">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M12 3v2m0 14v2M5.6 5.6l1.4 1.4m10 10 1.4 1.4M3 12h2m14 0h2M5.6 18.4 7 17m10-10 1.4-1.4"/><circle cx="12" cy="12" r="4"/></svg>
+            </span>
+            <h3 class="mt-4 text-sm font-bold text-slate-900 dark:text-white">Up to 4K</h3>
+            <p class="mt-1.5 text-[13px] leading-relaxed text-slate-500 dark:text-slate-400">Original quality preserved, from 360p all the way to 2160p.</p>
+          </div>
+          <div class="feature-card reveal [animation-delay:60ms]">
+            <span class="feature-icon bg-sky-500/10 text-sky-500 dark:text-sky-400">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+            </span>
+            <h3 class="mt-4 text-sm font-bold text-slate-900 dark:text-white">Playlist mode</h3>
+            <p class="mt-1.5 text-[13px] leading-relaxed text-slate-500 dark:text-slate-400">Paste a playlist link and get every video in one pass.</p>
+          </div>
+          <div class="feature-card reveal [animation-delay:120ms]">
+            <span class="feature-icon bg-rose-500/10 text-rose-500 dark:text-rose-400">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M12 3 4 6.5v5c0 4.7 3.4 8.4 8 9.5 4.6-1.1 8-4.8 8-9.5v-5L12 3Z"/><path d="M12 8v4"/></svg>
+            </span>
+            <h3 class="mt-4 text-sm font-bold text-slate-900 dark:text-white">Private by design</h3>
+            <p class="mt-1.5 text-[13px] leading-relaxed text-slate-500 dark:text-slate-400">We keep no logs of what you download and ask for no personal data.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════════ FAQ -->
+    <div class="mx-auto max-w-3xl px-4 py-10 sm:px-6" aria-label="Advertisement">
+      <div class="ad-slot ad-rectangle mx-auto" data-ad="mid"></div>
+    </div>
+
+    <section id="faq" class="border-t border-slate-200/70 px-4 py-20 transition-colors duration-300 dark:border-white/10 sm:px-6 lg:px-8">
+      <div class="mx-auto max-w-3xl">
+        <div class="reveal text-center">
+          <span class="eyebrow">FAQ</span>
+          <h2 class="mt-2 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
+            Frequently asked questions
+          </h2>
+        </div>
+
+        <div class="reveal mt-10 space-y-3">
+          <details class="faq-item" open>
+            <summary class="faq-q">
+              Is SaveVid.net really free?
+              <svg class="faq-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <div class="faq-a"><p>Yes. There is no account, no trial, and no paywall. Paste a link and download.</p></div>
+          </details>
+
+          <details class="faq-item">
+            <summary class="faq-q">
+              How do I download a whole playlist?
+              <svg class="faq-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <div class="faq-a"><p>Copy the playlist URL from YouTube and paste it in the box above. Every video in the playlist is queued in one pass, and you can cancel at any point.</p></div>
+          </details>
+
+          <details class="faq-item">
+            <summary class="faq-q">
+              Can I get 4K and 1080p quality?
+              <svg class="faq-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <div class="faq-a"><p>Yes, up to 2160p — but only when the original upload is that high. The quality selector shows what is actually available for each video.</p></div>
+          </details>
+
+          <details class="faq-item">
+            <summary class="faq-q">
+              Do you store my files or links?
+              <svg class="faq-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <div class="faq-a"><p>No. Files are processed on the fly and are not retained. We do not keep a history of what you download.</p></div>
+          </details>
+
+          <details class="faq-item">
+            <summary class="faq-q">
+              Is it legal to download YouTube videos?
+              <svg class="faq-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <div class="faq-a"><p>It depends entirely on the content. Downloading your own uploads, Creative Commons material, or anything you have a licence for is fine. Downloading copyrighted work without permission is not, and we do not support it.</p></div>
+          </details>
+
+          <details class="faq-item">
+            <summary class="faq-q">
+              Which formats are supported?
+              <svg class="faq-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <div class="faq-a"><p>MP4, MP3, WAV, M4A, WebM and FLAC. Audio-only formats are transcoded to the highest bitrate the source provides.</p></div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════ CTA -->
+    <section class="px-4 pb-20 sm:px-6 lg:px-8">
+      <div class="reveal mx-auto max-w-4xl overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-br from-brand-600 via-brand-500 to-violet-600 px-6 py-14 text-center shadow-2xl shadow-brand-500/25">
+        <h2 class="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+          Ready to download?
+        </h2>
+        <p class="mx-auto mt-3 max-w-lg text-[15px] text-brand-50/90">
+          Scroll up, paste your link, and you are done in under a minute.
+        </p>
+        <a href="#downloader" class="group mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-sm font-bold text-brand-600 shadow-xl transition-all duration-200 hover:scale-105 hover:shadow-2xl active:scale-95">
+          Start downloading
+          <svg class="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-6-7 7 7-7 7"/></svg>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════ footer -->
+    <div class="mx-auto max-w-7xl px-4 pb-4 sm:px-6 lg:px-8" aria-label="Advertisement">
+      <div class="ad-slot ad-leaderboard mx-auto" data-ad="bottom"></div>
+    </div>
+
+  <footer class="border-t border-slate-200/70 px-4 py-12 transition-colors duration-300 dark:border-white/10 sm:px-6">
+    <div class="mx-auto max-w-6xl">
+      <div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+
+        <div class="lg:col-span-2">
+          <a href="/" class="group flex items-center gap-2.5" aria-label="SaveVid.net home">
+            <span class="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-brand-400 to-violet-500 text-white shadow-lg shadow-brand-500/30 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:rotate-[-8deg]">
+              <svg viewBox="0 0 24 24" fill="none" class="h-5 w-5" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3.5v10.5m0 0 3.8-3.8M12 14l-3.8-3.8"/><path d="M4 16.5v2.2A2.3 2.3 0 0 0 6.3 21h11.4a2.3 2.3 0 0 0 2.3-2.3v-2.2"/>
+              </svg>
+            </span>
+            <span class="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white">SaveVid<span class="text-brand-500">.net</span></span>
+          </a>
+          <p class="mt-4 max-w-sm text-[13px] leading-relaxed text-slate-500 dark:text-slate-400">
+            A fast, free video downloader for YouTube and 8 more platforms. Save your own content, convert to
+            audio, and archive playlists in full quality.
+          </p>
+        </div>
+
+        <div>
+          <h3 class="text-[13px] font-bold uppercase tracking-wider text-slate-900 dark:text-white">Tools</h3>
+          <ul class="mt-4 space-y-2.5 text-[13px] text-slate-500 dark:text-slate-400">
+            <li><a href="#downloader" class="footer-link">YouTube Video Downloader</a></li>
+            <li><a href="#features" class="footer-link">YouTube to MP3</a></li>
+            <li><a href="#features" class="footer-link">YouTube to WAV</a></li>
+            <li><a href="#features" class="footer-link">4K Video Downloader</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="text-[13px] font-bold uppercase tracking-wider text-slate-900 dark:text-white">Company</h3>
+          <ul class="mt-4 space-y-2.5 text-[13px] text-slate-500 dark:text-slate-400">
+            <li><a href="/privacy.html" class="footer-link">Privacy Policy</a></li>
+            <li><a href="/terms.html" class="footer-link">Terms of Service</a></li>
+            <li><a href="/dmca.html" class="footer-link">DMCA &amp; Copyright</a></li>
+            <li><a href="/about.html" class="footer-link">About</a></li>
+            <li><a href="/contact.html" class="footer-link">Contact</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="mt-10 flex flex-col items-center justify-between gap-3 border-t border-slate-200/70 pt-6 text-xs text-slate-400 dark:border-white/10 sm:flex-row dark:text-slate-600">
+        <p>© <span id="year">2026</span> SaveVid.net — Download only content you own or have permission to save.</p>
+        <p class="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+          <span>Not affiliated with YouTube, Google, TikTok, Instagram, Facebook or X.</span>
+          <span aria-hidden="true" class="hidden sm:inline">·</span>
+          <!-- rel="noopener nofollow" because this is a cross-site link from a page
+               that carries AdSense: the referral has to be explicit, and the new
+               tab must not get a handle on this one. -->
+          <a href="https://aifinancepk.site" target="_blank" rel="noopener nofollow"
+             class="font-medium text-slate-500 transition-colors hover:text-brand-500 dark:text-slate-400 dark:hover:text-brand-400">AIFinancePK</a>
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+
+  <script>
+    // Register the service worker so the app installs and opens offline. Wait for
+    // load so it never competes with the first render for bandwidth.
+    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+      addEventListener('load', function () {
+        navigator.serviceWorker.register('/sw.js').catch(function () {
+          // A failed registration must stay silent: the site works fine without it.
+        });
+      });
+    }
+  </script>
+</body>
+</html>

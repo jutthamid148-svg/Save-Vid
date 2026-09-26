@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>You're offline — SaveVid.net</title>
+<link rel="icon" href="/icons/favicon-32.png" />
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100dvh; display: grid; place-items: center; padding: 2rem;
+    background: #070b12; color: #e8edf7;
+    font: 16px/1.6 "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  .card {
+    max-width: 30rem; text-align: center;
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 1rem; padding: 2.5rem 2rem;
+  }
+  svg { margin-bottom: 1rem; }
+  h1 { font-size: 1.4rem; margin: 0 0 .5rem; letter-spacing: -.01em; }
+  p { color: #9aa7bd; margin: 0 0 1.5rem; }
+  button {
+    font: inherit; font-weight: 600; color: #fff; cursor: pointer;
+    background: #2f6bff; border: 0; border-radius: .75rem; padding: .7rem 1.4rem;
+  }
+  button:hover { background: #1d4ff0; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#2f6bff" stroke-width="1.6" stroke-linecap="round">
+      <path d="M2 2l20 20M8.5 16.5a5 5 0 007 0M5 12.5a10 10 0 0114 0M1.5 8.5a15 15 0 0121 0" />
+    </svg>
+    <h1>You're offline</h1>
+    <p>SaveVid needs a connection to fetch a new video. Anything you already downloaded is still on your device.</p>
+    <button onclick="location.reload()">Try again</button>
+  </div>
+  <script>
+    addEventListener('online', () => location.replace('/'));
+  </script>
+</body>
+</html>

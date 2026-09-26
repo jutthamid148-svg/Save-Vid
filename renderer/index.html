@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'" />
+<title>VidGrab</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ambient background -->
+<div class="aurora" aria-hidden="true">
+  <span class="blob b1"></span>
+  <span class="blob b2"></span>
+  <span class="blob b3"></span>
+  <span class="grid"></span>
+</div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="20" height="20">
+        <path d="M12 3.5v10.5m0 0 3.8-3.8M12 14l-3.8-3.8" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M4 16.5v2.2A2.3 2.3 0 0 0 6.3 21h11.4a2.3 2.3 0 0 0 2.3-2.3v-2.2" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="brand-text">VidGrab</span>
+  </div>
+  <div class="engine" id="engineStatus" title="Download engine status">
+    <i class="dot"></i><span id="engineText">checking…</span>
+  </div>
+</header>
+
+<main>
+  <!-- ------------------------------------------------------------ input -->
+  <section class="pane">
+    <div class="urlbar" id="urlbar">
+      <span class="url-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="17" height="17">
+          <path d="M10 13a5 5 0 0 0 7.1.1l3-3a5 5 0 0 0-7.1-7.1L11.3 4.7M14 11a5 5 0 0 0-7.1-.1l-3 3a5 5 0 0 0 7.1 7.1l1.7-1.7"
+                fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <input id="url" type="url" spellcheck="false" autocomplete="off"
+             placeholder="Paste a YouTube, Facebook, Instagram, X, TikTok or SoundCloud link…" />
+      <button id="fetch" class="btn primary">
+        <span class="btn-label">Fetch</span>
+        <span class="spinner" aria-hidden="true"></span>
+      </button>
+    </div>
+
+    <div class="platforms" aria-hidden="true">
+      <span>YT</span><span>FB</span><span>IG</span><span>X</span><span>TT</span><span>SC</span>
+    </div>
+
+    <!-- fetched video -->
+    <div class="meta" id="meta" hidden>
+      <div class="thumb skeleton-host">
+        <img id="thumb" alt="" />
+        <span class="skeleton" id="thumbSkeleton"></span>
+        <span class="dur" id="duration"></span>
+      </div>
+      <div class="info">
+        <h2 id="title">—</h2>
+        <p class="sub">
+          <span id="platform" class="tag">—</span>
+          <span id="uploader" class="uploader"></span>
+        </p>
+      </div>
+    </div>
+
+    <!-- options -->
+    <div class="controls" id="controls" hidden>
+      <label class="field">
+        <span>Format</span>
+        <select id="format"></select>
+      </label>
+      <label class="field">
+        <span>File name</span>
+        <input id="filename" type="text" spellcheck="false" />
+      </label>
+      <label class="check">
+        <input type="checkbox" id="subs" />
+        <span class="box" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="12" height="12"><path d="m5 13 4 4L19 7" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span>Download subtitles (SRT)</span>
+      </label>
+    </div>
+
+    <div class="outdir">
+      <button id="pickDir" class="btn ghost">Save to</button>
+      <code id="outDir">—</code>
+    </div>
+
+    <button id="start" class="btn primary big" disabled>
+      <span class="btn-label">Download</span>
+    </button>
+
+    <p class="err" id="err" hidden>
+      <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.9"/>
+        <path d="M12 7.5v5.5M12 16.2v.1" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/>
+      </svg>
+      <span id="errText"></span>
+    </p>
+  </section>
+
+  <!-- ======================================================= AI assistant -->
+  <section class="ai" id="aiPanel" data-state="off">
+    <div class="ai-head">
+      <button id="aiToggle" class="ai-toggle" aria-expanded="false">
+        <span class="ai-spark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="16" height="16">
+            <path d="M12 2.5 13.9 9l6.6 1.9-6.6 1.9L12 19.4 10.1 12.8 3.5 10.9 10.1 9 12 2.5Z"
+                  fill="currentColor"/>
+          </svg>
+        </span>
+        <span class="ai-title">AI Studio</span>
+        <span class="ai-sub" id="aiSub">Add a Gemini key to unlock summaries, chapters and more</span>
+        <svg class="ai-chev" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <span class="ai-model" id="aiModel" hidden></span>
+    </div>
+
+    <div class="ai-body" id="aiBody" hidden>
+
+      <!-- key setup -->
+      <div class="ai-key" id="aiKeyBox">
+        <p class="ai-note">
+          Your key is stored on this machine only, in VidGrab's settings file. It is never
+          sent anywhere except Google's API. Get one free at
+          <a href="https://aistudio.google.com/app/apikey" id="aiKeyLink" target="_blank" rel="noreferrer noopener">aistudio.google.com</a>.
+        </p>
+        <div class="ai-key-row">
+          <input id="aiKeyInput" type="password" spellcheck="false" autocomplete="off"
+                 placeholder="AIza…" aria-label="Gemini API key" />
+          <button id="aiKeySave" class="btn primary small">Save</button>
+          <button id="aiKeyClear" class="btn ghost small" hidden>Remove</button>
+        </div>
+        <p class="ai-hint" id="aiKeyHint"></p>
+      </div>
+
+      <!-- model picker -->
+      <label class="ai-field" id="aiModelBox" hidden>
+        <span>Model</span>
+        <select id="aiModelSel"></select>
+      </label>
+
+      <!-- actions -->
+      <div class="ai-actions" id="aiActions" hidden>
+        <button class="ai-act" data-op="summary">
+          <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+            <path d="M5 3.5h9L18.5 8v12.5H5V3.5Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M14 3.5V8h4.5M8 12.5h7M8 16h4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+          Summary &amp; chapters
+        </button>
+        <button class="ai-act" data-op="advise">
+          <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+            <path d="M4 17.5 9 11l4 3.5 7-8.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M15.5 6H20v4.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Best format
+        </button>
+        <button class="ai-act" data-op="tag">
+          <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+            <path d="M3.5 11.5V4.5h7l9.5 9.5-7 7L3.5 11.5Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+            <circle cx="7.5" cy="8.5" r="1.4" fill="currentColor"/>
+          </svg>
+          Tag &amp; categorise
+        </button>
+        <button class="ai-act" data-op="translate">
+          <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+            <path d="M3.5 6h9M8 4v2c0 3.5-1.8 6.6-4.5 8M6 10.5c1 2.2 2.8 4 5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="m12.5 20.5 4-9 4 9M14 17.5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Translate subs
+        </button>
+      </div>
+
+      <label class="ai-field" id="aiLangBox" hidden>
+        <span>Translate into</span>
+        <select id="aiLang">
+          <option>Urdu</option><option>English</option><option>Hindi</option>
+          <option>Arabic</option><option>Spanish</option><option>French</option>
+          <option>German</option><option>Turkish</option><option>Chinese (Simplified)</option>
+          <option>Japanese</option>
+        </select>
+      </label>
+
+      <!-- output -->
+      <div class="ai-out" id="aiOut" hidden>
+        <div class="ai-busy" id="aiBusy">
+          <span class="ai-spin"></span><span id="aiBusyText">Working…</span>
+        </div>
+        <div id="aiResult"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------------ queue -->
+  <section class="queue">
+    <div class="queue-head">
+      <h3>Queue <span class="count" id="count">0</span></h3>
+      <button id="clearDone" class="btn tiny ghost">Clear finished</button>
+    </div>
+    <ul id="list" class="list"></ul>
+    <p class="empty" id="empty">
+      <span class="empty-art" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="30" height="30">
+          <path d="M12 3.5v10.5m0 0 3.8-3.8M12 14l-3.8-3.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M4 16.5v2.2A2.3 2.3 0 0 0 6.3 21h11.4a2.3 2.3 0 0 0 2.3-2.3v-2.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+      </span>
+      Your downloads will appear here
+    </p>
+  </section>
+</main>
+
+<footer>
+  <span>Only save content you own or have permission to download. Please respect each platform's terms.</span>
+</footer>
+
+<!-- toast host -->
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
