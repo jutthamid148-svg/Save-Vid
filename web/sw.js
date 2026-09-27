@@ -16,7 +16,7 @@
 // compiled utility classes the new HTML depends on -- the CDN script it used to
 // pull them in is gone. The page would render completely unstyled until the
 // revalidate landed. Bumping VERSION drops those caches outright.
-const VERSION = 'v2';
+const VERSION = 'v3';
 const SHELL = `savevid-shell-${VERSION}`;
 const ASSETS = `savevid-assets-${VERSION}`;
 
