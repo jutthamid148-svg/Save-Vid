@@ -74,8 +74,13 @@ loadConfig();
 // same release as the binary, so it is not a defence against a compromised
 // upstream release account. There is no way around that without vendoring.
 const YTDLP_VERSION = '2026.08.19';
+// The asset name matters. `yt-dlp` is a Python zipapp -- it starts with
+// `#!/usr/bin/env python3` and needs a system interpreter, so on a Vercel
+// function it fails with "env: python3: No such file or directory". Only
+// `yt-dlp_linux` is a self-contained ELF binary (38.6MB, Python bundled), which
+// is what runs here. The macOS equivalent, `yt-dlp_macos`, is likewise standalone.
 const YTDLP_BUILD = {
-  linux: { name: 'yt-dlp', sha256: '1fa6733c37ea6fb51c99ad8fe785e7b7e5f3246c9b980230329d4fb72ed8d4d6' },
+  linux: { name: 'yt-dlp_linux', sha256: '58162f9bfdc27458ea47bfcb311cf47028f17d8154a8bf7d689861d46399230a' },
   darwin: { name: 'yt-dlp_macos', sha256: '0f192b7ec147ab6288885d6351d9ab67367640029b4377576ef46dd79cf7b202' }
 };
 const YTDLP_BASE = `https://github.com/yt-dlp/yt-dlp/releases/download/${YTDLP_VERSION}`;
@@ -93,17 +98,19 @@ async function fetchYtDlp() {
   // /tmp is the only writable path in the function, and it is wiped when the
   // instance recycles -- so this both caches and re-fetches as needed.
   const dest = path.join(os.tmpdir(), `savevid-ytdlp-${YTDLP_VERSION}`);
-  if (fs.existsSync(dest) && fs.statSync(dest).size > 1_000_000) return dest;
+  if (fs.existsSync(dest) && fs.statSync(dest).size > 20_000_000) return dest;
 
   const [binRes, sumsRes] = await Promise.all([
-    fetch(`${YTDLP_BASE}/${build.name}`, { signal: AbortSignal.timeout(30000) }),
+    // 38.6MB will not land inside a snappy budget on a cold function, and the
+    // whole function is capped at maxDuration, so this gets most of it.
+    fetch(`${YTDLP_BASE}/${build.name}`, { signal: AbortSignal.timeout(45000) }),
     fetch(`${YTDLP_BASE}/SHA2-256SUMS`, { signal: AbortSignal.timeout(15000) })
   ]);
   if (!binRes.ok) throw new Error(`yt-dlp download failed (HTTP ${binRes.status}).`);
   if (!sumsRes.ok) throw new Error(`yt-dlp checksum file unavailable (HTTP ${sumsRes.status}).`);
 
   const bytes = Buffer.from(await binRes.arrayBuffer());
-  if (bytes.length < 1_000_000) throw new Error('yt-dlp download was truncated.');
+  if (bytes.length < 20_000_000) throw new Error('yt-dlp download was truncated.');
 
   const actual = crypto.createHash('sha256').update(bytes).digest('hex');
 

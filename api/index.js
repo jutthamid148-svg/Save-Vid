@@ -21,4 +21,4 @@ module.exports = handler;
 // Downloads are throttled on purpose -- see the relay in server.js -- so a 60s
 // ceiling is generous for a 4K file while still failing loudly rather than
 // hanging a function until Vercel kills it at 5 minutes.
-module.exports.maxDuration = 60;
+module.exports.maxDuration = 300;
