@@ -15,6 +15,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
+const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
 
 // Locally, __dirname is the project root and web/ is a child of it. On Vercel
@@ -54,20 +55,94 @@ function saveConfig() {
 loadConfig();
 
 // ---------------------------------------------------------------- yt-dlp
-// The same bundled engine the desktop app uses. Transcripts come from here.
-// A 17MB Windows binary is checked in for the Electron build but is useless in
-// a Linux serverless function, so this resolves to a bare command name there and
-// only calls that run (the transcript routes) fail -- the download routes use
-// the InnerTube relay in this file and never touch yt-dlp.
-const YTDLP = (() => {
+// The same bundled engine the desktop app uses. The 17MB Windows binary is
+// checked in for the Electron build. There is no equivalent on a Linux
+// serverless function -- its filesystem is read-only apart from /tmp, and it
+// has no yt-dlp on PATH -- so spawning there failed with
+// `spawn yt-dlp ENOENT` and took every non-YouTube platform with it.
+//
+// The fix is to fetch the standalone Linux build on first use and cache it in
+// /tmp, which survives between invocations on a warm instance. So the cost is
+// paid once per instance, not once per request. Every spawn goes through
+// resolveYtDlp(), so there is no path left that reaches the missing binary.
+//
+// The download is pinned to a tag rather than "latest", and the bytes are
+// checked against that tag's published SHA2-256SUMS before anything is written
+// to disk or executed. To move to a new yt-dlp release, update the one tag and
+// the two hashes below. Note what this does and does not buy: it defeats a
+// corrupted or tampered download in transit, but the checksums come from the
+// same release as the binary, so it is not a defence against a compromised
+// upstream release account. There is no way around that without vendoring.
+const YTDLP_VERSION = '2026.08.19';
+const YTDLP_BUILD = {
+  linux: { name: 'yt-dlp', sha256: '1fa6733c37ea6fb51c99ad8fe785e7b7e5f3246c9b980230329d4fb72ed8d4d6' },
+  darwin: { name: 'yt-dlp_macos', sha256: '0f192b7ec147ab6288885d6351d9ab67367640029b4377576ef46dd79cf7b202' }
+};
+const YTDLP_BASE = `https://github.com/yt-dlp/yt-dlp/releases/download/${YTDLP_VERSION}`;
+
+// One in-flight download per instance, shared by every concurrent request.
+let ytdlpReady = null;
+
+async function fetchYtDlp() {
+  const build = YTDLP_BUILD[process.platform];
+  if (!build) {
+    throw new Error(
+      `yt-dlp is not installed on this machine and no build is pinned for ${process.platform}.`);
+  }
+
+  // /tmp is the only writable path in the function, and it is wiped when the
+  // instance recycles -- so this both caches and re-fetches as needed.
+  const dest = path.join(os.tmpdir(), `savevid-ytdlp-${YTDLP_VERSION}`);
+  if (fs.existsSync(dest) && fs.statSync(dest).size > 1_000_000) return dest;
+
+  const [binRes, sumsRes] = await Promise.all([
+    fetch(`${YTDLP_BASE}/${build.name}`, { signal: AbortSignal.timeout(30000) }),
+    fetch(`${YTDLP_BASE}/SHA2-256SUMS`, { signal: AbortSignal.timeout(15000) })
+  ]);
+  if (!binRes.ok) throw new Error(`yt-dlp download failed (HTTP ${binRes.status}).`);
+  if (!sumsRes.ok) throw new Error(`yt-dlp checksum file unavailable (HTTP ${sumsRes.status}).`);
+
+  const bytes = Buffer.from(await binRes.arrayBuffer());
+  if (bytes.length < 1_000_000) throw new Error('yt-dlp download was truncated.');
+
+  const actual = crypto.createHash('sha256').update(bytes).digest('hex');
+
+  // Two independent checks. The pinned constant is the one that matters: it is
+  // the value a human read out of the release when the tag was chosen, so a
+  // release that is later re-uploaded cannot change what we run. The manifest
+  // check is a second opinion that catches a mismatch between what we pinned
+  // and what the tag currently advertises.
+  if (actual !== build.sha256) {
+    throw new Error('yt-dlp checksum mismatch -- refusing to run the download.');
+  }
+  const published = (await sumsRes.text())
+    .split('\n')
+    .map((l) => l.trim().split(/\s+/))
+    .find(([, n]) => n === build.name);
+  if (!published || published[0].toLowerCase() !== build.sha256) {
+    throw new Error('yt-dlp release manifest disagrees with the pinned checksum.');
+  }
+
+  fs.writeFileSync(dest, bytes, { mode: 0o755 });
+  return dest;
+}
+
+function resolveYtDlp() {
+  // A checked-in binary always wins, so the desktop build and any local
+  // install keep using the exact version they ship with.
   const exe = process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
   const here = path.join(__dirname, 'resources', exe);
-  return fs.existsSync(here) ? here : exe;
-})();
+  if (fs.existsSync(here)) return Promise.resolve(here);
+
+  if (!ytdlpReady) {
+    ytdlpReady = fetchYtDlp().catch((e) => { ytdlpReady = null; throw e; });  // let the next request retry
+  }
+  return ytdlpReady;
+}
 
 function runYtDlp(args) {
-  return new Promise((resolve, reject) => {
-    const proc = spawn(YTDLP, args, { windowsHide: true });
+  return resolveYtDlp().then((bin) => new Promise((resolve, reject) => {
+    const proc = spawn(bin, args, { windowsHide: true });
     let out = '';
     let err = '';
     proc.stdout.on('data', (d) => { out += d.toString(); });
@@ -76,7 +151,7 @@ function runYtDlp(args) {
     proc.on('close', (code) => (code === 0
       ? resolve(out)
       : reject(new Error(err.split('\n').filter(Boolean).slice(-3).join('\n') || `yt-dlp exited ${code}`))));
-  });
+  }));
 }
 
 // ---------------------------------------------------------------- helpers
@@ -477,7 +552,13 @@ function sse(res, event, data) {
   res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 }
 
-function streamDownload(res, url, format, quality) {
+async function streamDownload(res, url, format, quality) {
+  // Resolve the engine before the response is committed. On a cold serverless
+  // instance this triggers the one-off binary download, and if that fails we
+  // want the caller to still be able to send a normal JSON error -- once
+  // writeHead has run, every later failure can only be an SSE event.
+  const bin = await resolveYtDlp();
+
   res.writeHead(200, {
     'Content-Type': 'text/event-stream; charset=utf-8',
     'Cache-Control': 'no-store',
@@ -510,7 +591,7 @@ function streamDownload(res, url, format, quality) {
     url
   );
 
-  const proc = spawn(YTDLP, args, { windowsHide: true });
+  const proc = spawn(bin, args, { windowsHide: true });
   let stderr = '';
   let file = '';
   let finished = false;
