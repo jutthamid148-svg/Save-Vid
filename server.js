@@ -796,28 +796,61 @@ function videoIdOf(url) {
   return null;
 }
 
-const INNERTUBE_BODY = (videoId) => JSON.stringify({
-  context: { client: { clientName: 'ANDROID', clientVersion: '20.10.38', hl: 'en', androidSdkVersion: 34 } },
-  videoId,
-  contentCheckOk: true,
-  racyCheckOk: true
-});
+// YouTube gates clients individually, so a ladder is the only way through.
+// A single ANDROID request is not enough: the same video can answer OK for one
+// client and LOGIN_REQUIRED ("Sign in to confirm you're not a bot") for another,
+// and the verdict depends on the *calling IP's* reputation, so which client
+// works from a Vercel function is not the same as which works from a laptop.
+// Each entry is a client that returns plain un-ciphered CDN urls, ordered
+// cheapest-to-tried first. No key parameter -- supplying a stale one is what
+// makes YouTube answer 400 FAILED_PRECONDITION.
+const INNERTUBE_CLIENTS = [
+  {
+    name: 'ANDROID', version: '20.10.38', id: '3', androidSdkVersion: 34,
+    ua: 'com.google.android.youtube/20.10.38 (Linux; U; Android 14) gzip'
+  },
+  {
+    name: 'IOS', version: '20.10.4', id: '5',
+    ua: 'com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3_1 like Mac OS X;) AppleWebKit/605.1.15'
+  },
+  {
+    name: 'ANDROID_VR', version: '1.60.19', id: '28', androidSdkVersion: 32,
+    ua: 'com.google.android.apps.youtube.vr.oculus/1.60.19 (Linux; U; Android 12) gzip'
+  }
+];
 
-const INNERTUBE_HEADERS = {
-  'Content-Type': 'application/json',
-  'User-Agent': 'com.google.android.youtube/20.10.38 (Linux; U; Android 14) gzip',
-  'X-YouTube-Client-Name': '3',
-  'X-YouTube-Client-Version': '20.10.38',
-  Accept: '*/*'
-};
+function innertubeBody(videoId, client) {
+  return JSON.stringify({
+    context: {
+      client: {
+        clientName: client.name,
+        clientVersion: client.version,
+        hl: 'en',
+        ...(client.androidSdkVersion ? { androidSdkVersion: client.androidSdkVersion } : {})
+      }
+    },
+    videoId,
+    contentCheckOk: true,
+    racyCheckOk: true
+  });
+}
 
-async function innertubePlayer(videoId) {
-  const ctl = AbortSignal.timeout(8000);
+function innertubeHeaders(client) {
+  return {
+    'Content-Type': 'application/json',
+    'User-Agent': client.ua,
+    'X-YouTube-Client-Name': client.id,
+    'X-YouTube-Client-Version': client.version,
+    Accept: '*/*'
+  };
+}
+
+async function innertubeOnce(videoId, client) {
   const res = await fetch('https://www.youtube.com/youtubei/v1/player', {
     method: 'POST',
-    headers: INNERTUBE_HEADERS,
-    body: INNERTUBE_BODY(videoId),
-    signal: ctl
+    headers: innertubeHeaders(client),
+    body: innertubeBody(videoId, client),
+    signal: AbortSignal.timeout(8000)
   });
   if (!res.ok) throw new Error(`InnerTube replied ${res.status}`);
   const j = await res.json();
@@ -826,10 +859,35 @@ async function innertubePlayer(videoId) {
     const why = j.playabilityStatus?.reason || status;
     throw new Error(/private/i.test(why) ? 'This video is private.'
       : /age|confirm/i.test(why) ? 'This video is age-restricted.'
+      : /bot/i.test(why) ? 'YouTube asked this server to prove it is not a bot.'
       : 'This video cannot be played.');
   }
+  // A bare OK with no streams is a silent failure -- the format list downstream
+  // would be empty and the UI would offer nothing. Treat it as a miss so the
+  // next client gets a turn.
+  const streams = [
+    ...(j.streamingData?.formats || []),
+    ...(j.streamingData?.adaptiveFormats || [])
+  ];
+  if (!streams.some((f) => f && f.url)) throw new Error('InnerTube returned no playable streams.');
   return j;
 }
+
+async function innertubePlayer(videoId) {
+  let last = null;
+  for (const client of INNERTUBE_CLIENTS) {
+    try {
+      return await innertubeOnce(videoId, client);
+    } catch (e) {
+      last = e;
+      console.warn(`[fast] InnerTube ${client.name} failed for ${videoId}: ${e.message}`);
+    }
+  }
+  throw last || new Error('InnerTube could not read this video.');
+}
+
+// oEmbed only needs a plain user agent, not a full client impersonation.
+const INNERTUBE_HEADERS = { 'User-Agent': INNERTUBE_CLIENTS[0].ua };
 
 // oEmbed is ~0.8s and gives a clean title/author/thumbnail, but no formats.
 // Running it alongside InnerTube means the slower of the two (~2s) is the
@@ -938,7 +996,10 @@ async function probeMetadata(url) {
     raw = await runYtDlp(['--no-warnings', '--no-playlist', '--no-check-certificate',
       '--no-check-formats', '--socket-timeout', '15', '-J', url]);
   } catch (e) {
-    throw new Error(`Could not read this link: ${e.message}`);
+    const hint = /Sign in to confirm|cookies|bot/i.test(e.message)
+      ? ' YouTube is asking for authentication from this server.'
+      : '';
+    throw new Error(`Could not read this link:${hint} ${e.message}`);
   }
 
   let info;
