@@ -26,7 +26,12 @@
 // autoplay toggle and the play/duration overlay on the preview thumbnail; the
 // Vimeo marquee path is replaced with a valid one; app.js drives the bottom
 // nav from setMode so it cannot disagree with the tab strip.
-const VERSION = 'v7';
+// v8: the supported-platforms grid. index.html replaces the platform marquee
+// with eight brand-badge cards, relabels the bottom nav to Downloader /
+// Formats / Sites / Settings and adds the settings sheet; app.js gains the
+// sheet wiring. All three sit behind stale-while-revalidate, so without this
+// bump a returning visitor gets the new stylesheet against the old markup.
+const VERSION = 'v8';
 const SHELL = `savevid-shell-${VERSION}`;
 const ASSETS = `savevid-assets-${VERSION}`;
 

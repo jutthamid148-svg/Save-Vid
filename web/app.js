@@ -175,6 +175,8 @@ if (bnav) {
     }
 
     if (b.dataset.nav) {
+      // "settings" is handled in the capture phase above, by the sheet.
+      if (b.dataset.nav === 'settings') return;
       const target = document.getElementById(b.dataset.nav);
       if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -309,6 +311,104 @@ if (hiTrack && hiDots) {
     if (autoIcon) autoIcon.innerHTML = PAUSE;
     start();
   }
+
+  // The settings sheet drives the same two functions rather than keeping its
+  // own copy of the preference, so the sheet switch and the on-carousel
+  // button cannot end up showing different things.
+  window.savevidAuto = {
+    start, stop,
+    on: () => wanted,
+    blocked: () => REDUCED.matches
+  };
+}
+
+/* ═══════════════════════════════════════════════════════ settings sheet */
+const sheet = document.getElementById('settings');
+
+if (sheet) {
+  const setThemeBtn = document.getElementById('setTheme');
+  const setAutoBtn  = document.getElementById('setAuto');
+  let lastFocus = null;
+  let closing = false;
+
+  function paintSwitches() {
+    // aria-checked is the single source of truth: the switch's colour is
+    // styled off it, so there is nothing for the two to disagree about.
+    if (setThemeBtn) setThemeBtn.setAttribute('aria-checked', String(root.classList.contains('dark')));
+    if (setAutoBtn)  setAutoBtn.setAttribute('aria-checked', String(!!(window.savevidAuto && window.savevidAuto.on())));
+  }
+
+  function openSheet() {
+    closing = false;
+    lastFocus = document.activeElement;
+    paintSwitches();
+    sheet.classList.remove('hidden', 'closing');
+    document.body.classList.add('sheet-open');
+    // Focus the close button, not the panel: a dialog that focuses its own
+    // container reads the whole thing out on some screen readers.
+    const close = sheet.querySelector('[data-sheet-close]:not(.sheet-scrim)');
+    if (close) close.focus();
+  }
+
+  function closeSheet() {
+    if (closing) return;
+    closing = true;
+    document.body.classList.remove('sheet-open');
+    const hide = () => { sheet.classList.add('hidden'); sheet.classList.remove('closing'); closing = false; };
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) hide();
+    else { sheet.classList.add('closing'); setTimeout(hide, 200); }
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+
+  // Anything with this attribute dismisses: the scrim, the X, and a future
+  // "Done" button, without each of them re-implementing the close.
+  sheet.addEventListener('click', (e) => {
+    if (e.target.closest('[data-sheet-close]')) closeSheet();
+  });
+
+  // A modal dialog that leaks focus to the page behind it is not modal.
+  sheet.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { closeSheet(); return; }
+    if (e.key !== 'Tab') return;
+    const f = [...sheet.querySelectorAll('button, [href], input, select, [tabindex]:not([tabindex="-1"])')]
+      .filter((el) => el.offsetParent !== null);
+    if (!f.length) return;
+    const first = f[0];
+    const last  = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+
+  if (setThemeBtn) {
+    setThemeBtn.addEventListener('click', () => {
+      setTheme(root.classList.contains('dark') ? 'light' : 'dark');
+      localStorage.setItem(THEME_KEY, root.classList.contains('dark') ? 'dark' : 'light');
+      paintSwitches();
+    });
+  }
+
+  if (setAutoBtn) {
+    setAutoBtn.addEventListener('click', () => {
+      const a = window.savevidAuto;
+      if (!a) return;
+      // Reduced motion is not a preference to override from a settings panel:
+      // the switch stays off and says why.
+      if (a.blocked()) return;
+      a.on() ? a.stop() : a.start();
+      paintSwitches();
+    });
+  }
+
+  // The bottom bar's Settings tab opens the sheet. Everything else there
+  // scrolls to an anchor, so this is the one target that is not an id.
+  if (bnav) {
+    bnav.addEventListener('click', (e) => {
+      const b = e.target.closest('.bnav');
+      if (b && b.dataset.nav === 'settings') { e.stopPropagation(); openSheet(); }
+    }, true);
+  }
+
+  window.savevidSheet = { open: openSheet, close: closeSheet, paint: paintSwitches };
 }
 
 /* ═════════════════════════════════════════════════ scroll reveals */

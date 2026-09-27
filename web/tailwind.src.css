@@ -118,71 +118,84 @@
 .stat-label { font-size: 11.5px; font-weight: 550; color: rgb(100 116 139); }
 :is(.dark) .stat-label { color: rgb(148 163 184); }
 
-/* -------------------------------------------------------------- marquee */
-/* Each platform is a rounded tile in its own brand colour, with the logo
-   knocked out in white. `--tile` is set inline per item.                  */
-/* The strip scrolls by translating the track, not by scrolling it. A
-   transform keeps the motion on the compositor, so it stays smooth while the
-   tiles have a blur and a shadow under them — animating `scrollLeft` would
-   re-rasterise on every frame. -50% is exactly one set of tiles because the
-   markup duplicates the row, which is what makes the loop seamless. */
-.marquee-track {
-  padding-left: 1rem;
-  will-change: transform;
-  animation: marquee 42s linear infinite;
+/* ------------------------------------------------- supported platforms */
+/* One card per platform, the brand mark knocked out of a badge in the brand's
+   own colour, and a glow in that same colour on hover or press. `--tile` is
+   set inline per card.
+
+   The glow is a blurred pseudo-element rather than a box-shadow because
+   box-shadow spreads the colour but never blurs it -- a spread ring reads as
+   an outline, not as light. The pseudo-element sits behind the card content
+   (z-index -1) so the blur never washes out the text. */
+.plat-card {
+  position: relative;
+  isolation: isolate;
+  display: block;
+  padding: 18px 16px;
+  border-radius: 18px;
+  border: 1px solid rgb(226 232 240 / .8);
+  background: rgb(255 255 255 / .7);
+  transition: transform .3s cubic-bezier(.22, 1, .36, 1),
+              border-color .3s, box-shadow .3s;
 }
 
-/* Pausing on hover is a courtesy for desktop, where the pointer is aimed at
-   something. It does nothing on touch, where there is no hover to have. */
-.marquee-mask:hover .marquee-track { animation-play-state: paused; }
-
-@keyframes marquee {
-  from { transform: translate3d(0, 0, 0); }
-  to   { transform: translate3d(-50%, 0, 0); }
+:is(.dark) .plat-card {
+  border-color: rgb(255 255 255 / .1);
+  background: rgb(255 255 255 / .04);
 }
 
-.marquee-tile {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-  padding: 7px 16px 7px 7px;
-  border-radius: 999px;
-  background: var(--tile, rgb(148 163 184));
-  box-shadow: 0 6px 18px -8px rgb(15 23 42 / .45);
-  transition: transform .28s cubic-bezier(.22, 1, .36, 1),
-              box-shadow .28s, filter .28s;
+.plat-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  opacity: 0;
+  box-shadow: 0 0 0 4px var(--tile, #2f6bff);
+  filter: blur(14px);
+  transition: opacity .32s ease;
 }
 
-.marquee-tile svg {
-  width: 26px;
-  height: 26px;
-  flex-shrink: 0;
-  color: #fff;
+.plat-card:active { transform: scale(.975); }
+.plat-card:focus-visible { outline: 2px solid var(--tile, #2f6bff); outline-offset: 3px; }
+
+/* Hover only where a pointer exists. On a hybrid laptop this would otherwise
+   stick the glow on under a finger that has long since left. */
+@media (hover: hover) and (pointer: fine) {
+  .plat-card:hover {
+    transform: translateY(-4px);
+    border-color: color-mix(in srgb, var(--tile, #2f6bff) 55%, transparent);
+    box-shadow: 0 18px 34px -18px var(--tile, #2f6bff);
+  }
+  .plat-card:hover::before { opacity: .38; }
+  .plat-card:hover .plat-badge { transform: scale(1.08) rotate(-3deg); }
 }
 
-.marquee-tile span {
-  font-size: 14.5px;
-  font-weight: 700;
-  letter-spacing: .01em;
-  color: #fff;
-  white-space: nowrap;
+.plat-badge {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  /* A tint, not a fill: the mark is the brand colour and has to stay legible
+     against it, so a solid YouTube-red chip would swallow the YouTube logo. */
+  background: color-mix(in srgb, var(--tile, #2f6bff) 16%, transparent);
+  color: var(--tile, #2f6bff);
+  transition: transform .3s cubic-bezier(.22, 1, .36, 1);
 }
 
-.marquee-tile:hover {
-  transform: translateY(-3px) scale(1.05);
-  filter: saturate(1.15) brightness(1.05);
-  box-shadow: 0 12px 26px -10px var(--tile, #2f6bff);
+:is(.dark) .plat-badge { background: color-mix(in srgb, var(--tile, #2f6bff) 26%, transparent); }
+
+/* TikTok and X are black. White artwork on a black tile vanishes in dark
+   mode, so the chip is lifted to a dark grey and the mark stays near-white. */
+.plat-card[style*="#010101"] .plat-badge,
+.plat-card[style*="#0A0A0A"] .plat-badge {
+  background: color-mix(in srgb, #94a3b8 30%, transparent);
+  color: #e2e8f0;
 }
 
-/* Fade the strip into the page edges instead of hard-cutting it. */
-.marquee-mask {
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
-          mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
-}
-
-:is(.dark) .marquee-tile { box-shadow: 0 6px 20px -8px rgb(0 0 0 / .9); }
-:is(.dark) .marquee-tile:hover { box-shadow: 0 14px 30px -10px var(--tile, #2f6bff); }
+.plat-ico { width: 26px; height: 26px; display: block; }
 
 /* --------------------------------------------------------- feature cards */
 .feature-card {
@@ -642,5 +655,110 @@
 
 @media (prefers-reduced-motion: reduce) {
   .seg-ind, .hdot, .tap { transition: none; }
-  .marquee-track { animation: none; }
+  .plat-card { transition: none; }
+  .plat-card::before { transition: none; }
+}
+
+/* ------------------------------------------------------- settings sheet */
+/* A bottom sheet on phones, a centred dialog from sm up. The scrim is a
+   sibling of the panel, not a background on it, so a tap outside the panel
+   does not have to hit the panel's own bounds to dismiss. */
+.sheet { position: fixed; inset: 0; z-index: 90; }
+
+.sheet-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgb(2 6 23 / .55);
+  backdrop-filter: blur(3px);
+          -webkit-backdrop-filter: blur(3px);
+  animation: sheet-fade .22s ease;
+}
+
+.sheet-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 86vh;
+  overflow-y: auto;
+  border-radius: 26px 26px 0 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  animation: sheet-up .3s cubic-bezier(.22, 1, .36, 1);
+}
+
+/* Only slide on the way in. A dismiss plays the reverse from a class the JS
+   adds, so the panel never animates out from a position it was never in. */
+.sheet.closing .sheet-scrim { animation: sheet-fade .2s ease reverse; }
+.sheet.closing .sheet-panel { animation: sheet-down .2s ease forwards; }
+
+@keyframes sheet-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sheet-up   { from { transform: translate3d(0, 100%, 0); } to { transform: translate3d(0, 0, 0); } }
+@keyframes sheet-down { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(0, 100%, 0); } }
+
+.sheet-grab {
+  width: 38px;
+  height: 4px;
+  margin: 8px auto 0;
+  border-radius: 999px;
+  background: rgb(100 116 139 / .35);
+}
+
+.sheet-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgb(226 232 240 / .8);
+  background: rgb(255 255 255 / .6);
+  transition: border-color .25s;
+}
+
+:is(.dark) .sheet-row { border-color: rgb(255 255 255 / .1); background: rgb(255 255 255 / .04); }
+
+/* The knob is a switch thumb; the "on" state is driven off aria-checked so
+   there is one source of truth and the CSS cannot drift from what a screen
+   reader announces. */
+.set-knob { box-shadow: 0 1px 4px rgb(15 23 42 / .3); }
+[role="switch"][aria-checked="true"] { border-color: rgb(47 107 255 / .5); background: rgb(47 107 255 / .18); }
+[role="switch"][aria-checked="true"] .set-knob { transform: translateX(26px); background: #2f6bff; }
+
+@media (min-width: 640px) {
+  .sheet-panel {
+    left: 50%;
+    top: 50%;
+    bottom: auto;
+    right: auto;
+    width: 30rem;
+    transform: translate(-50%, -50%);
+    border-radius: 26px;
+    animation: sheet-pop .26s cubic-bezier(.22, 1, .36, 1);
+  }
+  .sheet.closing .sheet-panel { animation: sheet-pop .18s ease reverse forwards; }
+  .sheet-grab { display: none; }
+  .sheet .sheet-row:first-child { margin-top: 4px; }
+}
+
+@keyframes sheet-pop {
+  from { opacity: 0; transform: translate(-50%, -46%) scale(.96); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* The sheet is on top of everything, so the page behind it must not scroll
+   under a finger that is aiming for the panel. */
+body.sheet-open { overflow: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-scrim, .sheet-panel,
+  .sheet.closing .sheet-scrim, .sheet.closing .sheet-panel { animation: none; }
+}
+
+/* Two lines, every card. The blurbs run from eight words to fifteen, so
+   unclamped they leave the grid rows in a ragged staircase. */
+.plat-blurb {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+          line-clamp: 2;
+  overflow: hidden;
 }
