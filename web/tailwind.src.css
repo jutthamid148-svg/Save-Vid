@@ -121,9 +121,24 @@
 /* -------------------------------------------------------------- marquee */
 /* Each platform is a rounded tile in its own brand colour, with the logo
    knocked out in white. `--tile` is set inline per item.                  */
+/* The strip scrolls by translating the track, not by scrolling it. A
+   transform keeps the motion on the compositor, so it stays smooth while the
+   tiles have a blur and a shadow under them — animating `scrollLeft` would
+   re-rasterise on every frame. -50% is exactly one set of tiles because the
+   markup duplicates the row, which is what makes the loop seamless. */
 .marquee-track {
   padding-left: 1rem;
   will-change: transform;
+  animation: marquee 42s linear infinite;
+}
+
+/* Pausing on hover is a courtesy for desktop, where the pointer is aimed at
+   something. It does nothing on touch, where there is no hover to have. */
+.marquee-mask:hover .marquee-track { animation-play-state: paused; }
+
+@keyframes marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
 }
 
 .marquee-tile {
@@ -551,4 +566,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   .seg-ind, .hdot, .tap { transition: none; }
+  .marquee-track { animation: none; }
 }

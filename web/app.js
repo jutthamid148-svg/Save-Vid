@@ -536,6 +536,31 @@ function escHtml(s) {
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+/* A filename safe on every OS we hand a file to: Windows rejects < > : " / \ |
+   ? * and a fixed set of reserved names, macOS and Linux dislike a leading
+   dot, and a control character in a name is a question nobody should have to
+   answer. The extension is appended by the server, so it is not written here. */
+const CONTROL_CHARS = /[\x00-\x1f\x7f]/g;
+const ILLEGAL_CHARS = /[<>:"/\\|?*]/g;
+
+function safeFileName(raw, ext) {
+  let name = String(raw || '')
+    .replace(CONTROL_CHARS, '')
+    .replace(ILLEGAL_CHARS, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^\.+/, '')
+    // Reserved on Windows regardless of extension: CON, PRN, AUX, NUL, COM1-9,
+    // LPT1-9. Naming a download "CON.mp4" silently writes to nowhere.
+    .replace(/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\.|$)/i, '_$2')
+    .slice(0, 120)
+    .trim();
+
+  if (!name) name = 'savevid';
+  if (ext) name = name + '.' + String(ext).replace(/[^a-z0-9]/gi, '');
+  return name;
+}
+
 function renderOptions(meta) {
   platName.textContent = meta.platform.name;
   platTag.style.background = meta.platform.colour;
@@ -796,7 +821,7 @@ function streamDownload(option, buttonEl) {
   const qs = new URLSearchParams({
     url,
     fid: option.fid || '',
-    name: (option.label || '').replace(/[^ws·()-]/g, '').trim()
+    name: safeFileName(option.label, option.ext)
   });
 
   // Reuse a single frame: browsers throttle concurrent navigations per frame,
@@ -832,66 +857,7 @@ function streamDownload(option, buttonEl) {
   btn.disabled = false;
   btn.classList.remove('opacity-70', 'cursor-wait');
 }
-function streamDownload(option, buttonEl) {
-  const url = input.value.trim();
-  barText.textContent = 'Starting download…';
-  bar.style.width = '0%';
 
-  // The transfer itself belongs to the browser once the response starts, so we
-  // only promise what we can actually observe: that it was accepted and began.
-  showToast('Downloading started…', 'ok');
-  label.textContent = 'Download started';
-
-  const frame = document.createElement('iframe');
-  frame.style.display = 'none';
-  frame.setAttribute('aria-hidden', 'true');
-  frame.title = 'download';
-  document.body.appendChild(frame);
-
-  let settled = false;
-  const finish = (text) => {
-    if (settled) return;
-    settled = true;
-    clearTimeout(timer);
-    frame.remove();
-    bar.style.width = '100%';
-    barPct.textContent = '100%';
-    barText.textContent = text;
-    downloading = false;
-    endDownload(buttonEl);
-  };
-
-  // The server relays the body, so the response only resolves once the very
-  // first bytes are in hand. If nothing has happened by then, something went
-  // wrong upstream and the user needs to know.
-  const timer = setTimeout(() => {
-    finish('Download started — check your downloads.');
-  }, 6000);
-
-  // Ask the server to open the download for us. We cannot read the response
-  // (it is a file, not JSON), so success is judged by the request completing
-  // without an explicit error field.
-  fetch('/api/stream-start', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url, fid: option.fid || '', name: option.label || '' }),
-    keepalive: true
-  })
-    .then((r) => (r.ok ? null : r.json().catch(() => null)))
-    .then((err) => {
-      if (err && err.error) {
-        showToast(err.error, 'bad');
-        finish('Could not start the download.');
-        return;
-      }
-      finish('Download started — check your downloads.');
-    })
-    .catch(() => {
-      // The request may have been cut off after the browser already took the
-      // response. That is still a success from the user's point of view.
-      finish('Download started — check your downloads.');
-    });
-}
 function relayDownload(option, buttonEl) {
   barText.textContent = 'Starting…';
 

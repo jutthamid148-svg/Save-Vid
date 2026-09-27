@@ -16,7 +16,13 @@
 // compiled utility classes the new HTML depends on -- the CDN script it used to
 // pull them in is gone. The page would render completely unstyled until the
 // revalidate landed. Bumping VERSION drops those caches outright.
-const VERSION = 'v4';
+// v4: the mobile app shell (glass panels, mode tabs, highlight carousel).
+// v5: app.js changed on the download path -- the duplicate streamDownload
+// pointed at a route the server does not serve, and the filename sanitizer
+// mangled every name. Both are inside a stale-while-revalidated cache, so
+// without this bump a returning visitor keeps clicking a download that
+// silently does nothing.
+const VERSION = 'v5';
 const SHELL = `savevid-shell-${VERSION}`;
 const ASSETS = `savevid-assets-${VERSION}`;
 
