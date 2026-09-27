@@ -38,7 +38,11 @@
 // section edge, the Facebook tile is the official #1877F2, and the TikTok/X
 // badges flip their mark polarity per theme. index.html and styles.css both
 // changed, so the bump is required.
-const VERSION = 'v9';
+// v10: the highlights carousel stops showing stats and now shows the site's own
+// platform logos, one card per supported site, reusing the .plat-card markup from
+// the grid below so the brand tint and light/dark mark polarity stay in sync.
+// index.html changed, so the bump is required.
+const VERSION = 'v10';
 const SHELL = `savevid-shell-${VERSION}`;
 const ASSETS = `savevid-assets-${VERSION}`;
 

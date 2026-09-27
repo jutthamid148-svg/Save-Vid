@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8899/)",
-      "Bash(curl -s http://localhost:8899/)"
+      "Bash(curl -s http://localhost:8899/)",
+      "Bash(node -e ' *)",
+      "Bash(sed -i 's|\\\\[300, 380, 420, 449, 458, 470, 520, 580, 640, d.length\\\\]|[60,100,140,180,220,260,300]|' web/_bisect.js)",
+      "Bash(node web/_bisect.js)"
     ]
   }
 }
