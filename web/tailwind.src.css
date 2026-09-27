@@ -1,0 +1,420 @@
+/* Build input for the compiled stylesheet. Not served: npx tailwindcss reads
+   this and writes web/styles.css, which is the only stylesheet the pages link.
+   The @tailwind directives are replaced with real CSS at build time, so this
+   file is meaningless if opened directly in a browser. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Everything below was hand-written in web/styles.css. It is inlined here
+   rather than imported so the build emits a single request: a second
+   stylesheet is a second round trip on the critical path, which is the exact
+   problem the compiled build exists to remove. */
+/* ═══════════════════════════════════════════════ component-level styles */
+/* Tailwind handles layout/utilities; this file holds the repeated patterns
+   and the states Tailwind markup would otherwise have to inline.          */
+
+/* -------------------------------------------------- scroll reveal (JS) */
+.reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity .7s cubic-bezier(.22, 1, .36, 1),
+              transform .7s cubic-bezier(.22, 1, .36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.reveal.in { opacity: 1; transform: none; }
+
+/* ------------------------------------------------------------ nav links */
+.nav-link {
+  position: relative;
+  display: block;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 550;
+  color: rgb(100 116 139);
+  white-space: nowrap;
+  transition: color .22s cubic-bezier(.22, 1, .36, 1),
+              background-color .22s cubic-bezier(.22, 1, .36, 1);
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 3px;
+  height: 2px;
+  border-radius: 2px;
+  background: #2f6bff;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .28s cubic-bezier(.22, 1, .36, 1);
+}
+
+.nav-link:hover          { color: #2f6bff; background: rgb(47 107 255 / .06); }
+.nav-link:hover::after   { transform: scaleX(1); }
+.nav-link.is-active      { color: #2f6bff; }
+.nav-link.is-active::after { transform: scaleX(1); }
+
+:is(.dark) .nav-link { color: rgb(148 163 184); }
+:is(.dark) .nav-link:hover,
+:is(.dark) .nav-link.is-active { color: #7ea6ff; background: rgb(47 107 255 / .1); }
+
+/* ---------------------------------------------------------- footer links */
+.footer-link {
+  transition: color .2s, transform .2s;
+  display: inline-block;
+}
+.footer-link:hover { color: #2f6bff; transform: translateX(2px); }
+:is(.dark) .footer-link:hover { color: #7ea6ff; }
+
+/* ------------------------------------------------------------- eyebrows */
+.eyebrow {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: #2f6bff;
+  background: rgb(47 107 255 / .1);
+  border: 1px solid rgb(47 107 255 / .2);
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+:is(.dark) .eyebrow { color: #7ea6ff; background: rgb(47 107 255 / .15); border-color: rgb(47 107 255 / .3); }
+
+/* ---------------------------------------------------------- stat tiles */
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 18px 10px;
+  border-radius: 14px;
+  border: 1px solid rgb(226 232 240);
+  background: #fff;
+  transition: transform .3s cubic-bezier(.22, 1, .36, 1),
+              border-color .3s, box-shadow .3s;
+}
+.stat:hover {
+  transform: translateY(-3px);
+  border-color: rgb(47 107 255 / .35);
+  box-shadow: 0 14px 30px -14px rgb(47 107 255 / .3);
+}
+:is(.dark) .stat { border-color: rgb(255 255 255 / .09); background: rgb(255 255 255 / .035); }
+:is(.dark) .stat:hover { border-color: rgb(47 107 255 / .3); box-shadow: 0 14px 30px -14px rgb(0 0 0 / .8); }
+
+.stat-num {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  background: linear-gradient(135deg, #2f6bff, #7c5cff);
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+  font-variant-numeric: tabular-nums;
+}
+.stat-label { font-size: 11.5px; font-weight: 550; color: rgb(100 116 139); }
+:is(.dark) .stat-label { color: rgb(148 163 184); }
+
+/* -------------------------------------------------------------- marquee */
+/* Each platform is a rounded tile in its own brand colour, with the logo
+   knocked out in white. `--tile` is set inline per item.                  */
+.marquee-track {
+  padding-left: 1rem;
+  will-change: transform;
+}
+
+.marquee-tile {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 7px 16px 7px 7px;
+  border-radius: 999px;
+  background: var(--tile, rgb(148 163 184));
+  box-shadow: 0 6px 18px -8px rgb(15 23 42 / .45);
+  transition: transform .28s cubic-bezier(.22, 1, .36, 1),
+              box-shadow .28s, filter .28s;
+}
+
+.marquee-tile svg {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.marquee-tile span {
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: .01em;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.marquee-tile:hover {
+  transform: translateY(-3px) scale(1.05);
+  filter: saturate(1.15) brightness(1.05);
+  box-shadow: 0 12px 26px -10px var(--tile, #2f6bff);
+}
+
+/* Fade the strip into the page edges instead of hard-cutting it. */
+.marquee-mask {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+
+:is(.dark) .marquee-tile { box-shadow: 0 6px 20px -8px rgb(0 0 0 / .9); }
+:is(.dark) .marquee-tile:hover { box-shadow: 0 14px 30px -10px var(--tile, #2f6bff); }
+
+/* --------------------------------------------------------- feature cards */
+.feature-card {
+  padding: 22px;
+  border-radius: 16px;
+  border: 1px solid rgb(226 232 240);
+  background: #fff;
+  transition: transform .3s cubic-bezier(.22, 1, .36, 1),
+              box-shadow .3s cubic-bezier(.22, 1, .36, 1),
+              border-color .3s cubic-bezier(.22, 1, .36, 1);
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  border-color: rgb(47 107 255 / .4);
+  box-shadow: 0 18px 38px -12px rgb(47 107 255 / .28);
+}
+
+:is(.dark) .feature-card {
+  border-color: rgb(255 255 255 / .09);
+  background: rgb(255 255 255 / .035);
+}
+:is(.dark) .feature-card:hover {
+  border-color: rgb(47 107 255 / .35);
+  box-shadow: 0 18px 38px -12px rgb(0 0 0 / .7);
+}
+
+.feature-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  transition: transform .3s cubic-bezier(.22, 1, .36, 1);
+}
+.feature-card:hover .feature-icon { transform: scale(1.1) rotate(-6deg); }
+
+/* ------------------------------------------------------------------ FAQ */
+.faq-item {
+  border: 1px solid rgb(226 232 240);
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+  transition: border-color .25s, box-shadow .25s;
+}
+.faq-item[open] {
+  border-color: rgb(47 107 255 / .35);
+  box-shadow: 0 10px 28px -16px rgb(47 107 255 / .35);
+}
+:is(.dark) .faq-item { border-color: rgb(255 255 255 / .09); background: rgb(255 255 255 / .035); }
+:is(.dark) .faq-item[open] { border-color: rgb(47 107 255 / .32); }
+
+.faq-item summary { list-style: none; cursor: pointer; }
+.faq-item summary::-webkit-details-marker { display: none; }
+
+.faq-q {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 20px;
+  font-size: 14.5px;
+  font-weight: 620;
+  color: rgb(15 23 42);
+  transition: color .2s, background .2s;
+}
+.faq-q:hover { color: #2f6bff; background: rgb(47 107 255 / .04); }
+:is(.dark) .faq-q { color: rgb(226 232 240); }
+:is(.dark) .faq-q:hover { color: #7ea6ff; background: rgb(47 107 255 / .08); }
+
+.faq-caret {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: rgb(148 163 184);
+  transition: transform .3s cubic-bezier(.22, 1, .36, 1), color .2s;
+}
+.faq-item[open] .faq-caret { transform: rotate(180deg); color: #2f6bff; }
+:is(.dark) .faq-item[open] .faq-caret { color: #7ea6ff; }
+
+.faq-a {
+  padding: 0 20px 18px;
+  font-size: 13.5px;
+  line-height: 1.75;
+  color: rgb(100 116 139);
+  animation: faqIn 320ms cubic-bezier(.22, 1, .36, 1);
+}
+:is(.dark) .faq-a { color: rgb(148 163 184); }
+.faq-a p { margin: 0; }
+
+@keyframes faqIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* --------------------------------------------------- reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal { opacity: 1; transform: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════ toast */
+#toastHost {
+  position: fixed; z-index: 90; left: 50%; bottom: 1.5rem; transform: translateX(-50%);
+  display: grid; gap: .4rem; justify-items: center; pointer-events: none;
+}
+.toast {
+  border-radius: 999px; padding: .55rem 1rem;
+  font-size: 12.5px; font-weight: 700; color: #0f172a;
+  background: rgb(15 23 42); box-shadow: 0 14px 30px -12px rgb(0 0 0 / .6);
+  animation: toastIn .3s cubic-bezier(.22,1,.36,1) both;
+}
+.toast.ok  { background: #0f9d58; color: #fff; }
+.toast.bad { background: #e11d48; color: #fff; }
+.toast.out { animation: toastOut .35s ease forwards; }
+@keyframes toastIn  { from { opacity: 0; transform: translateY(12px) scale(.95); } to { opacity: 1; transform: none; } }
+@keyframes toastOut { to { opacity: 0; transform: translateY(8px) scale(.97); } }
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; transition: none; }
+}
+
+/* ══════════════════════════════════════════ fast options + skeletons */
+.skel-row {
+  height: 58px; border-radius: .9rem;
+  background: linear-gradient(100deg, rgb(148 163 184 / .10) 30%, rgb(148 163 184 / .22) 50%, rgb(148 163 184 / .10) 70%);
+  background-size: 220% 100%;
+  animation: skel 1.15s ease-in-out infinite;
+}
+:is(.dark) .skel-row { background: linear-gradient(100deg, rgb(255 255 255 / .04) 30%, rgb(255 255 255 / .10) 50%, rgb(255 255 255 / .04) 70%); background-size: 220% 100%; }
+@keyframes skel { from { background-position: 180% 0; } to { background-position: -40% 0; } }
+
+.opt {
+  position: relative; overflow: hidden; cursor: pointer; text-align: left;
+  border: 1px solid rgb(226 232 240 / .9); border-radius: .9rem;
+  background: rgb(255 255 255 / .85);
+  padding: .7rem .8rem .6rem;
+  transition: transform .2s cubic-bezier(.22,1,.36,1), border-color .2s, box-shadow .2s, background .2s;
+}
+.opt:hover:not(.busy) {
+  transform: translateY(-3px);
+  border-color: rgb(47 107 255 / .5);
+  box-shadow: 0 16px 30px -16px rgb(47 107 255 / .55);
+}
+.opt:active:not(.busy) { transform: translateY(-1px); }
+.opt.busy { cursor: progress; border-color: rgb(47 107 255 / .6); }
+
+.opt-top { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+.opt-label {
+  font-size: 12.5px; font-weight: 800; color: #0f172a; letter-spacing: -.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.opt-size {
+  flex: none; font-size: 11px; font-weight: 700; color: rgb(100 116 139);
+  font-variant-numeric: tabular-nums;
+}
+
+.opt-bar {
+  display: block; height: 3px; margin: .5rem 0 .45rem;
+  border-radius: 999px; background: rgb(148 163 184 / .22); overflow: hidden;
+}
+.opt-bar i {
+  display: block; height: 100%; width: 0;
+  border-radius: 999px; background: linear-gradient(90deg, #2f6bff, #8b5cf6);
+  transition: width .3s ease;
+}
+
+.opt-go {
+  display: flex; align-items: center; gap: .3rem;
+  font-size: 11.5px; font-weight: 700; color: #2f6bff;
+}
+.opt-go svg { width: 13px; height: 13px; }
+.opt.busy .opt-go { color: rgb(100 116 139); }
+
+:is(.dark) .opt { background: rgb(255 255 255 / .04); border-color: rgb(255 255 255 / .1); }
+:is(.dark) .opt-label { color: #f1f5f9; }
+:is(.dark) .opt-size { color: rgb(148 163 184); }
+:is(.dark) .opt-bar { background: rgb(255 255 255 / .1); }
+:is(.dark) .opt-go { color: #7ea6ff; }
+
+#mediaPanel { animation: aiIn .4s cubic-bezier(.22,1,.36,1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .skel-row, .opt, #mediaPanel { animation: none; transition: none; }
+}
+
+.opt-h5 {
+  margin: 0 0 .5rem; font-size: 10.5px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .08em; color: rgb(148 163 184);
+}
+@keyframes aiIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* ══════════════════════════════════════════════════════════ ad slots ════
+   Every container reserves its height up front. An ad that appears and pushes
+   the page down is the classic reason a site fails Core Web Vitals, and it is
+   also the fastest way to get an AdSense policy strike for accidental clicks —
+   a layout that jumps under a user's thumb is a click they did not mean. */
+.ad-slot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-radius: 1rem;
+  background: rgb(148 163 184 / .07);
+  overflow: hidden;
+}
+:is(.dark) .ad-slot { background: rgb(255 255 255 / .03); }
+
+/* "Advertisement" is required above every ad for AdSense policy compliance. */
+.ad-slot::before {
+  content: 'Advertisement';
+  position: absolute;
+  top: .5rem; left: 0; right: 0;
+  text-align: center;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgb(100 116 139 / .75);
+  pointer-events: none;
+  z-index: 1;
+}
+:is(.dark) .ad-slot::before { color: rgb(148 163 184 / .6); }
+
+.ad-leaderboard { min-height: 90px; margin-top: 2rem; }
+.ad-rectangle   { min-height: 250px; margin-top: 2rem; }
+
+/* Once the real creative lands it replaces the placeholder, so only show the
+   grey box while we are actually waiting. */
+.ad-slot.is-filled { background: none; }
+.ad-slot.is-filled::before { opacity: .55; }
+
+@media (min-width: 768px) { .ad-leaderboard { min-height: 100px; } }
+
+/* Never let a fixed-height ad well clip a creative on a narrow phone. */
+@media (max-width: 480px) { .ad-rectangle { min-height: 280px; } }
+
+/* ═════════════════════════════════════════════════════ install banner ═══ */
+#installBar { box-shadow: 0 10px 30px -12px rgb(47 107 255 / .45); }
+
+/* iOS cannot install a PWA from a button, so point at the share sheet instead
+   of showing a button that silently does nothing. */
+#installBar.is-ios #installBtn { display: none; }
+
+/* ═════════════════════════════════════════════════════════ share_target ══ */
+/* Android's share sheet hands us ?url= on the start_url. Put it in the box and
+   let the normal flow take it from there. */

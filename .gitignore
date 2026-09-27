@@ -14,4 +14,9 @@ dist/
 node_modules/
 *.exe
 
+# web/styles.css is the COMPILED Tailwind output and is committed on purpose, so
+# a clean checkout renders with no npm install. web/tailwind.src.css is its
+# build input and is committed too -- without it the CSS cannot be regenerated
+# after editing a class in the markup.
+
 .vercel
