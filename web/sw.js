@@ -31,14 +31,7 @@
 // Formats / Sites / Settings and adds the settings sheet; app.js gains the
 // sheet wiring. All three sit behind stale-while-revalidate, so without this
 // bump a returning visitor gets the new stylesheet against the old markup.
-// v9: the platform icons were sized off a dead `.plat-ico` selector, so the
-// SVGs fell back to the 300x150 replaced-element default and blew past their
-// badges; the class is now `.pl-ico`. The highlights carousel gets a negative-
-// margin gutter so its cards end inside the box instead of bleeding to the
-// section edge, the Facebook tile is the official #1877F2, and the TikTok/X
-// badges flip their mark polarity per theme. index.html and styles.css both
-// changed, so the bump is required.
-const VERSION = 'v9';
+const VERSION = 'v8';
 const SHELL = `savevid-shell-${VERSION}`;
 const ASSETS = `savevid-assets-${VERSION}`;
 

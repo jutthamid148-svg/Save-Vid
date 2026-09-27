@@ -187,26 +187,15 @@
 
 :is(.dark) .plat-badge { background: color-mix(in srgb, var(--tile, #2f6bff) 26%, transparent); }
 
-/* TikTok and X are black brands, so `--tile` is black and the generic rule
-   above would put near-black artwork on a black tint -- invisible. The chip
-   takes a neutral tint and the mark takes the polarity the page needs: dark
-   slate on the light theme, near-white on the dark one. */
+/* TikTok and X are black. White artwork on a black tile vanishes in dark
+   mode, so the chip is lifted to a dark grey and the mark stays near-white. */
 .plat-card[style*="#010101"] .plat-badge,
 .plat-card[style*="#0A0A0A"] .plat-badge {
-  background: rgb(148 163 184 / .22);
-  color: #0f172a;
-}
-
-:is(.dark) .plat-card[style*="#010101"] .plat-badge,
-:is(.dark) .plat-card[style*="#0A0A0A"] .plat-badge {
-  background: rgb(148 163 184 / .26);
+  background: color-mix(in srgb, #94a3b8 30%, transparent);
   color: #e2e8f0;
 }
 
-/* The class name has to match the markup -- these SVGs carry a viewBox but no
-   width/height attributes, so an unsized SVG falls back to the replaced-element
-   default of 300x150 and stretches right out of its badge. */
-.pl-ico { width: 26px; height: 26px; display: block; flex: none; }
+.plat-ico { width: 26px; height: 26px; display: block; }
 
 /* --------------------------------------------------------- feature cards */
 .feature-card {
@@ -636,16 +625,10 @@
     display: flex; gap: 12px;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
+    scroll-padding-left: 20px;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
-    /* The gutter is padding on the scroller, not a wrapper: the cards have to
-       end short of the box edge so the last one still reads as a card rather
-       than as a clipped sliver, and the scroll padding has to match it or
-       scroll-snap parks a card half-under the edge. */
-    padding: 0 20px;
-    margin: 0 -20px;
-    scroll-padding-inline: 20px;
   }
   .hscroll::-webkit-scrollbar { display: none; }
 
@@ -654,8 +637,6 @@
     scroll-snap-align: start; scroll-snap-stop: always;
     padding: 20px 18px; border-radius: 20px;
   }
-  /* Three cards fit the 768px track outright, so the row stops being a
-     carousel here and there is nothing left to swipe. */
   @media (min-width: 768px) { .hcard { width: 240px; } }
 
   .hdots { display: flex; gap: 6px; justify-content: center; }
