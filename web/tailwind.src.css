@@ -418,3 +418,137 @@
 /* ═════════════════════════════════════════════════════════ share_target ══ */
 /* Android's share sheet hands us ?url= on the start_url. Put it in the box and
    let the normal flow take it from there. */
+
+/* ══════════════════════════════════════════════════ native app shell ══════
+   Everything below makes the page behave like an installed app on a phone:
+   safe-area insets, tap feedback that reads as native, and slides that stay
+   on the compositor. These live in @layer so ordinary Tailwind utilities
+   still win — a hand-written rule outside a layer would outrank `bg-white`
+   and quietly break the rest of the page.                                */
+@layer base {
+  /* The blue flash iOS paints over a tapped link. Nothing here is a link in
+     the browser's sense, and a blue box on every tap is the single most
+     "this is a website" tell there is. */
+  html { -webkit-tap-highlight-color: transparent; }
+
+  /* A pull-to-refresh on a downloader loses the pasted link. */
+  body { overscroll-behavior-y: contain; }
+}
+
+@layer components {
+  /* Everything inside the notched area gets padding rather than margin, so the
+     background still reaches the edge of the screen. */
+  .app-safe-t { padding-top: env(safe-area-inset-top, 0px); }
+  .app-safe-b { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+  /* Tap feedback. 120ms is below the threshold where it reads as lag, and
+     scale(.97) is small enough to feel like a press rather than a bounce.
+     The hover arm is gated on a real pointer so a tap on a hybrid device does
+     not leave the tile stuck in a hovered state. */
+  .tap { -webkit-tap-highlight-color: transparent;
+         transition: transform .12s cubic-bezier(.2, 0, .2, 1); }
+  .tap:active { transform: scale(.97); }
+  @media (hover: hover) and (pointer: fine) {
+    .tap:active { transform: none; }
+    .tap:hover { transform: translateY(-1px); }
+  }
+
+  /* The frosted panel. Two layers: a blur for the content behind, and a
+     top-to-bottom white sheen so the surface catches light the way a physical
+     one would. */
+  .glass {
+    background: rgb(255 255 255 / .6);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+            backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgb(255 255 255 / .7);
+    box-shadow: 0 8px 32px -12px rgb(15 23 42 / .18),
+                inset 0 1px 0 0 rgb(255 255 255 / .6);
+  }
+  :is(.dark) .glass {
+    background: rgb(255 255 255 / .055);
+    border-color: rgb(255 255 255 / .1);
+    box-shadow: 0 8px 32px -12px rgb(0 0 0 / .7),
+                inset 0 1px 0 0 rgb(255 255 255 / .07);
+  }
+
+  /* The glow under the primary action. A blurred pseudo-element rather than a
+     box-shadow: box-shadow cannot be blurred, and that difference is the
+     entire "backlit" look. */
+  .glow-brand { position: relative; isolation: isolate; }
+  .glow-brand::after {
+    content: ""; position: absolute; inset: 0; z-index: -1;
+    border-radius: inherit;
+    background: linear-gradient(135deg, #2f6bff, #8b5cf6);
+    filter: blur(14px); opacity: .5;
+    transition: opacity .3s;
+  }
+  .glow-brand:hover::after { opacity: .7; }
+
+  /* ═══════════════════════════════════════════════ segmented mode tabs ══
+     A real tab strip, not a row of buttons: one sliding indicator behind the
+     active label. Its size is set from the script as a custom property
+     rather than written per-tab in markup, so the indicator stays correct
+     when a label is long, a font loads late, or the strip wraps.         */
+  .seg { position: relative; display: flex; gap: 2px;
+         padding: 4px; border-radius: 14px; isolation: isolate; }
+  .seg-ind {
+    position: absolute; z-index: -1; top: 4px; bottom: 4px; left: 0;
+    width: var(--seg-w, 0px);
+    transform: translateX(var(--seg-x, 0px));
+    border-radius: 11px;
+    background: linear-gradient(135deg, #2f6bff, #6d4bff);
+    box-shadow: 0 6px 16px -6px rgb(47 107 255 / .7);
+    transition: transform .38s cubic-bezier(.22, 1, .36, 1),
+                width .38s cubic-bezier(.22, 1, .36, 1);
+  }
+  .seg-tab {
+    flex: 1 1 0; min-width: 0; padding: 10px 6px;
+    border-radius: 11px; font-size: 12.5px; font-weight: 700;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    color: rgb(100 116 139);
+    transition: color .25s;
+  }
+  .seg-tab[aria-selected="true"] { color: #fff; }
+  :is(.dark) .seg-tab { color: rgb(148 163 184); }
+  :is(.dark) .seg-tab[aria-selected="true"] { color: #fff; }
+
+  /* ═══════════════════════════════════════════ highlights carousel ══════
+     Scroll-snap rather than a JS transform slider: the browser already tracks
+     the finger, so the dots cannot drift out of sync with the position, and
+     iOS momentum comes for free. `scroll-snap-stop: always` is what makes a
+     fast flick land on exactly one card instead of three.                  */
+  .hscroll {
+    display: flex; gap: 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: 20px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+  .hscroll::-webkit-scrollbar { display: none; }
+
+  .hcard {
+    flex: 0 0 auto; width: min(74vw, 260px);
+    scroll-snap-align: start; scroll-snap-stop: always;
+    padding: 20px 18px; border-radius: 20px;
+  }
+  @media (min-width: 768px) { .hcard { width: 240px; } }
+
+  .hdots { display: flex; gap: 6px; justify-content: center; }
+  .hdot {
+    width: 6px; height: 6px; border-radius: 999px;
+    background: rgb(148 163 184 / .38);
+    transition: width .35s cubic-bezier(.22, 1, .36, 1),
+                background-color .35s;
+  }
+  .hdot.on { width: 20px; background: #2f6bff; }
+
+  /* Tabular figures on anything showing a byte count. Proportional digits
+     make a number visibly jitter as it counts. */
+  .tnum { font-variant-numeric: tabular-nums; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seg-ind, .hdot, .tap { transition: none; }
+}

@@ -68,6 +68,138 @@ function onScroll() {
 window.addEventListener('scroll', onScroll, { passive: true });
 onScroll();
 
+/* ══════════════════════════════════════════════════════ mode tab strip ═══
+   Video / MP3 / Playlist are the same input box pointed at a different tool,
+   so switching is a matter of re-picking the format and re-running the probe
+   rather than a navigation. The indicator's geometry is measured from the
+   live DOM instead of hard-coded, because tab labels change width with the
+   viewport and a fixed offset would drift out of alignment on a phone.   */
+const modeTabs = document.getElementById('modeTabs');
+const segInd   = modeTabs && modeTabs.querySelector('.seg-ind');
+
+// What each tab means, expressed as the two controls it drives. A tab with no
+// distinct meaning would be a label that lies, so playlist shares the video
+// tab's format and only changes what the probe is asked for.
+const MODES = {
+  video:    { format: 'mp4',  quality: 'best' },
+  audio:    { format: 'mp3',  quality: 'best' },
+  playlist: { format: 'mp4',  quality: 'best' }
+};
+
+function moveIndicator(tab) {
+  if (!segInd || !tab) return;
+  segInd.style.setProperty('--seg-w', tab.offsetWidth + 'px');
+  segInd.style.setProperty('--seg-x', (tab.offsetLeft - 4) + 'px');
+}
+
+function setMode(mode, opts) {
+  const m = MODES[mode] || MODES.video;
+  fmtSel.value = m.format;
+  if (qtySel) qtySel.value = m.quality;
+
+  if (modeTabs) {
+    for (const t of modeTabs.querySelectorAll('.seg-tab')) {
+      const on = t.dataset.mode === mode;
+      t.setAttribute('aria-selected', String(on));
+      if (on) moveIndicator(t);
+    }
+  }
+
+  // Re-probe only if there is something to re-probe. Switching tab on an
+  // empty box should not fire a request or flash the panel.
+  if (!opts || !opts.silent) {
+    const v = input.value.trim();
+    if (looksLikeUrl(v)) probe(v);
+  }
+  updateEstimate();
+}
+
+if (modeTabs) {
+  modeTabs.addEventListener('click', (e) => {
+    const tab = e.target.closest('.seg-tab');
+    if (tab) setMode(tab.dataset.mode);
+  });
+
+  // Arrow keys, because a tablist that only responds to a pointer is not a
+  // tablist to anyone using a keyboard or a switch device.
+  modeTabs.addEventListener('keydown', (e) => {
+    const keys = { ArrowRight: 1, ArrowLeft: -1 };
+    if (!(e.key in keys)) return;
+    e.preventDefault();
+    const tabs = [...modeTabs.querySelectorAll('.seg-tab')];
+    const i = tabs.findIndex((t) => t.getAttribute('aria-selected') === 'true');
+    const next = tabs[(i + keys[e.key] + tabs.length) % tabs.length];
+    next.focus();
+    setMode(next.dataset.mode);
+  });
+
+  // The first measurement happens after layout; the rest on resize. Measuring
+  // in the same tick as the listener registration would read a zero height.
+  const measure = () => moveIndicator(modeTabs.querySelector('[aria-selected="true"]'));
+  requestAnimationFrame(measure);
+  addEventListener('resize', measure, { passive: true });
+
+  // A late webfont changes the label widths under the indicator.
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(measure).catch(() => {});
+  }
+}
+
+/* ═════════════════════════════════════════════════ highlights carousel ═══
+   The track is a native scroll-snap container, so this only has to (a) build
+   the dots and (b) read the scroll position back to highlight the right one.
+   Reading position off scrollLeft rather than driving a transform means the
+   dots cannot desync from the cards: there is no separate animated state to
+   fall out of step with the finger.                                     */
+const hiTrack = document.getElementById('hiTrack');
+const hiDots  = document.getElementById('hiDots');
+
+if (hiTrack && hiDots) {
+  const cards = [...hiTrack.querySelectorAll('.hcard')];
+
+  // One dot per card, plus a "trailing" dot so the last one is reachable
+  // rather than being stranded in the middle of the row.
+  const dots = [];
+  for (let i = 0; i < cards.length + 1; i++) {
+    const d = document.createElement('button');
+    d.type = 'button';
+    d.className = 'hdot';
+    d.setAttribute('role', 'tab');
+    d.setAttribute('aria-label', `Go to highlight ${i + 1}`);
+    d.addEventListener('click', () => {
+      const left = i < cards.length ? cards[i].offsetLeft - 20 : hiTrack.scrollWidth;
+      hiTrack.scrollTo({ left, behavior: 'smooth' });
+    });
+    hiDots.appendChild(d);
+    dots.push(d);
+  }
+
+  function activeDot() {
+    // The card nearest the left edge is the one the user is looking at; the
+    // threshold is half a card so the dot flips at the midpoint of a swipe
+    // rather than only once a card is fully settled.
+    const edge = hiTrack.scrollLeft + hiTrack.clientWidth * 0.4;
+    let n = 0;
+    for (let i = 0; i < cards.length; i++) if (cards[i].offsetLeft <= edge) n = i;
+    if (hiTrack.scrollLeft + hiTrack.clientWidth >= hiTrack.scrollWidth - 8) n = cards.length;
+    return n;
+  }
+
+  let dotN = -1;
+  function paintDots() {
+    const n = activeDot();
+    if (n === dotN) return;
+    dotN = n;
+    dots.forEach((d, i) => {
+      d.classList.toggle('on', i === n);
+      d.setAttribute('aria-selected', String(i === n));
+    });
+  }
+
+  hiTrack.addEventListener('scroll', paintDots, { passive: true });
+  paintDots();
+}
+
 /* ═════════════════════════════════════════════════ scroll reveals */
 const revealEls = document.querySelectorAll('.reveal');
 
@@ -289,6 +421,45 @@ function fmtDuration(sec) {
            : `${m}:${String(s % 60).padStart(2, '0')}`;
 }
 
+/* ------------------------------------------------- estimated file size
+   The probe already returns a real byte count for every format, so the
+   estimate is a lookup rather than a guess at bitrate. A number the server
+   gave us beats a plausible-looking formula, and a wrong one is worse than
+   no number at all. Anything with no size attached shows nothing.        */
+let probeData = null;
+
+function updateEstimate() {
+  const row  = document.getElementById('estRow');
+  const cell = document.getElementById('estSize');
+  if (!row || !cell) return;
+
+  if (!probeData) { row.classList.add('hidden'); row.classList.remove('flex'); return; }
+
+  const audio = fmtSel && AUDIO_EXTS.has(fmtSel.value);
+  const pool  = audio ? (probeData.audio || []) : (probeData.video || []);
+
+  // "Best" means the first row the server ranked highest; a named quality
+  // means the one whose label starts with that height. Matching on the label
+  // rather than on a stored id keeps this working for every platform, since
+  // only YouTube uses the numeric ids the format strings name.
+  let hit = null;
+  if (qtySel && qtySel.value !== 'best') {
+    hit = pool.find((o) => (o.label || '').startsWith(qtySel.value)) || null;
+  }
+  hit = hit || pool[0] || null;
+
+  if (!hit || !hit.size) { row.classList.add('hidden'); row.classList.remove('flex'); return; }
+
+  cell.textContent = fmtSize(hit.size);
+  row.classList.remove('hidden');
+  row.classList.add('flex');
+}
+
+const AUDIO_EXTS = new Set(['mp3', 'wav', 'm4a', 'flac']);
+
+if (fmtSel) fmtSel.addEventListener('change', updateEstimate);
+if (qtySel) qtySel.addEventListener('change', updateEstimate);
+
 // Instant client-side platform guess so the tag appears before the probe does.
 const CLIENT_PLATFORMS = [
   [/(^|\.)youtube\.com$|(^|\.)youtu\.be$/, 'YouTube', '#FF0000'],
@@ -332,6 +503,8 @@ function hidePanel() {
   optList.classList.add('hidden');
   optSkeleton.classList.add('hidden');
   thumbWrap.classList.add('hidden');
+  probeData = null;
+  updateEstimate();
 }
 
 // ------------------------------------------------------------- option cards
@@ -379,6 +552,9 @@ function renderOptions(meta) {
 
   optVideo.replaceChildren(...(meta.video || []).map(optionButton));
   optAudio.replaceChildren(...(meta.audio || []).map(optionButton));
+
+  probeData = meta;
+  updateEstimate();
 
   hideSkeleton();
 }

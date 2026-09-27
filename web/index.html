@@ -266,12 +266,12 @@ window.adsenseSlot = '';
   </div>
 
   <!-- ════════════════════════════════════════════════════════════ header -->
-  <header id="siteHeader" class="sticky top-0 z-50 border-b border-transparent bg-white/80 backdrop-blur-xl transition-all duration-300 dark:bg-[#070b12]/75">
+  <header id="siteHeader" class="app-safe-t sticky top-0 z-50 border-b border-transparent bg-white/80 backdrop-blur-xl transition-all duration-300 dark:bg-[#070b12]/75">
 
-    <div class="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
+    <div class="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4 sm:h-16 sm:gap-4 sm:px-6 lg:px-8">
 
       <!-- brand -->
-      <a href="/" class="group flex shrink-0 items-center gap-2.5" aria-label="SaveVid.net home">
+      <a href="/" class="tap group flex shrink-0 items-center gap-2.5" aria-label="SaveVid.net home">
         <span class="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-brand-400 to-violet-500 text-white shadow-lg shadow-brand-500/30 transition-all duration-300 group-hover:-translate-y-0.5 group-hover:rotate-[-8deg] group-hover:shadow-xl">
           <svg viewBox="0 0 24 24" fill="none" class="h-5 w-5" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 3.5v10.5m0 0 3.8-3.8M12 14l-3.8-3.8"/>
@@ -402,8 +402,20 @@ window.adsenseSlot = '';
         </div>
 
         <!-- ═══════════════════════════════════════════════ input card -->
-        <div class="animate-rise mx-auto mt-10 max-w-3xl [animation-delay:240ms]">
-          <div id="dlCard" class="rounded-2xl border border-slate-200/80 bg-white/85 p-2.5 shadow-2xl shadow-slate-900/10 backdrop-blur-xl transition-all duration-300 dark:border-white/10 dark:bg-white/[0.06] dark:shadow-black/40 focus-within:border-brand-400 focus-within:shadow-2xl focus-within:shadow-brand-500/20">
+        <div class="animate-rise mx-auto mt-8 max-w-3xl [animation-delay:240ms] sm:mt-10">
+
+          <!-- mode tabs. The strip is one control: switching a tab re-points
+               the same box at a different tool rather than navigating to a
+               different page, which is what makes it feel like an app tab
+               bar instead of a menu. -->
+          <div id="modeTabs" class="seg glass mb-3" role="tablist" aria-label="Download mode">
+            <span class="seg-ind" aria-hidden="true"></span>
+            <button class="seg-tab tap" role="tab" type="button" data-mode="video" aria-selected="true">Video</button>
+            <button class="seg-tab tap" role="tab" type="button" data-mode="audio" aria-selected="false">MP3</button>
+            <button class="seg-tab tap" role="tab" type="button" data-mode="playlist" aria-selected="false">Playlist</button>
+          </div>
+
+          <div id="dlCard" class="glass rounded-3xl p-2.5 transition-all duration-300 focus-within:border-brand-400/60 sm:rounded-2xl">
 
             <div class="flex flex-col gap-2.5 sm:flex-row">
               <!-- format -->
@@ -442,12 +454,12 @@ window.adsenseSlot = '';
                     <path d="M10 13a5 5 0 0 0 7.1.1l3-3a5 5 0 0 0-7.1-7.1L11.3 4.7M14 11a5 5 0 0 0-7.1-.1l-3 3a5 5 0 0 0 7.1 7.1l1.7-1.7"/>
                   </svg>
                 </span>
-                <input id="urlInput" type="url" spellcheck="false" autocomplete="off"
+                <input id="urlInput" type="url" inputmode="url" spellcheck="false" autocomplete="off" enterkeyhint="go"
                        placeholder="Paste your link here..."
-                       class="w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-20 text-sm text-slate-800 outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-brand-400 hover:bg-white focus:border-brand-500 dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/10" />
+                       class="w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-20 text-base text-slate-800 outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-brand-400 hover:bg-white focus:border-brand-500 sm:text-sm dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/10" />
                 <!-- paste button -->
-                <button id="pasteBtn" type="button" title="Paste from clipboard"
-                        class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11.5px] font-semibold text-slate-600 transition-all duration-200 hover:border-brand-400 hover:text-brand-500 active:scale-95 dark:border-white/10 dark:bg-white/10 dark:text-slate-300">
+                <button id="pasteBtn" type="button" title="Paste from clipboard" aria-label="Paste link from clipboard"
+                        class="tap absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11.5px] font-semibold text-slate-600 transition-all duration-200 hover:border-brand-400 hover:text-brand-500 dark:border-white/10 dark:bg-white/10 dark:text-slate-300">
                   <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="8" height="4" rx="1.2"/><path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/></svg>
                   Paste
                 </button>
@@ -455,7 +467,7 @@ window.adsenseSlot = '';
 
               <!-- download -->
               <button id="dlBtn" type="button"
-                      class="group relative shrink-0 overflow-hidden rounded-xl bg-brand-500 px-7 py-3.5 text-sm font-bold text-white shadow-lg shadow-brand-500/30 transition-all duration-200 hover:scale-[1.04] hover:bg-brand-600 hover:shadow-xl hover:shadow-brand-500/45 active:scale-95 sm:w-auto">
+                      class="glow-brand tap group relative w-full shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-brand-500 to-violet-600 px-7 py-3.5 text-sm font-bold text-white transition-all duration-200 hover:brightness-110 active:scale-[.97] sm:w-auto">
                 <span class="relative z-10 flex items-center justify-center gap-2">
                   <span id="dlLabel">Download</span>
                   <svg class="h-4 w-4 transition-transform duration-300 group-hover:translate-y-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -473,7 +485,7 @@ window.adsenseSlot = '';
               </div>
               <div class="mt-2 flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400">
                 <span id="progressText">Preparing…</span>
-                <span id="progressPct">0%</span>
+                <span id="progressPct" class="tnum">0%</span>
               </div>
             </div>
 
@@ -482,33 +494,45 @@ window.adsenseSlot = '';
           </div>
 
           <!-- ══════════════════════════════════ detected media + options -->
-          <div id="mediaPanel" class="mt-4 hidden" aria-live="polite">
+          <div id="mediaPanel" class="mt-3 hidden" aria-live="polite">
 
             <!-- header: platform tag, title, duration -->
-            <div class="flex items-start gap-4 rounded-2xl border border-slate-200/80 bg-white/85 p-4 shadow-xl shadow-slate-900/5 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04]">
-              <div id="thumbWrap" class="hidden h-[72px] w-[128px] shrink-0 overflow-hidden rounded-xl bg-slate-900/5 sm:block dark:bg-white/5">
-                <img id="thumb" alt="" class="h-full w-full object-cover" />
-              </div>
-
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2">
-                  <span id="platTag"
-                        class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold text-white"
-                        style="background:#2f6bff">
-                    <span class="h-1.5 w-1.5 rounded-full bg-white/80"></span>
-                    <span id="platName">Video</span>
-                  </span>
-                  <span id="metaDur" class="text-xs font-semibold text-slate-500 dark:text-slate-400"></span>
+            <div class="glass rounded-2xl p-3 sm:p-4">
+              <div class="flex items-start gap-3 sm:gap-4">
+                <div id="thumbWrap" class="hidden aspect-video w-[124px] shrink-0 overflow-hidden rounded-xl bg-slate-900/5 sm:w-[168px] dark:bg-white/5">
+                  <img id="thumb" alt="" class="h-full w-full object-cover" />
                 </div>
-                <h3 id="metaTitle"
-                    class="mt-2 line-clamp-2 text-sm font-bold leading-snug text-slate-800 dark:text-slate-100"></h3>
-                <p id="metaBy" class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400"></p>
+
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2">
+                    <span id="platTag"
+                          class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold text-white"
+                          style="background:#2f6bff">
+                      <span class="h-1.5 w-1.5 rounded-full bg-white/80"></span>
+                      <span id="platName">Video</span>
+                    </span>
+                    <span id="metaDur" class="tnum text-xs font-semibold text-slate-500 dark:text-slate-400"></span>
+                  </div>
+                  <h3 id="metaTitle"
+                      class="mt-2 line-clamp-2 text-sm font-bold leading-snug text-slate-800 dark:text-slate-100"></h3>
+                  <p id="metaBy" class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400"></p>
+                </div>
+
+                <button id="metaReset" type="button" title="Clear" aria-label="Clear link"
+                        class="tap grid h-7 w-7 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-slate-200">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
               </div>
 
-              <button id="metaReset" type="button" title="Clear"
-                      class="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-slate-200">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-              </button>
+              <!-- The size for whatever is selected above. Shown here rather
+                   than only on the option buttons because the dropdown is the
+                   control the user just touched, and a number that appears
+                   next to the thing you changed lands better than one you
+                   have to go looking for. -->
+              <div id="estRow" class="mt-3 hidden items-center justify-between border-t border-slate-200/70 pt-3 text-xs dark:border-white/10">
+                <span class="font-semibold text-slate-500 dark:text-slate-400">Estimated size</span>
+                <span id="estSize" class="tnum font-bold text-slate-800 dark:text-white">—</span>
+              </div>
             </div>
 
             <!-- skeletons while the probe runs -->
@@ -530,28 +554,48 @@ window.adsenseSlot = '';
           </div>
 
           <!-- ═══════════════════════════════════════════ policy banner -->
-          <div class="mt-4 flex items-start gap-3 rounded-xl border border-amber-500/25 bg-slate-900 px-4 py-3.5 text-left shadow-lg shadow-black/20 dark:border-amber-500/20">
+          <div class="mt-3 flex items-start gap-3 rounded-xl border border-amber-500/25 bg-slate-900/80 px-4 py-3 text-left backdrop-blur-xl sm:py-3.5 dark:border-amber-500/20">
             <svg class="mt-0.5 h-4 w-4 shrink-0 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
               <path d="M12 9v4m0 3.5v.01M10.3 3.9 2.4 17.5A1.9 1.9 0 0 0 4 20.3h16a1.9 1.9 0 0 0 1.6-2.8L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z"/>
             </svg>
-            <p class="text-[13px] font-bold uppercase tracking-wide text-amber-300">
+            <p class="text-[11.5px] font-bold uppercase leading-relaxed tracking-wide text-amber-300 sm:text-[13px]">
               We do not allow/support the download of copyrighted material!
             </p>
           </div>
 
-          <p class="mt-4 text-xs text-slate-600 dark:text-slate-400">
+          <p class="mt-3 text-center text-xs text-slate-600 dark:text-slate-400 sm:text-left">
             By using this tool you confirm the content is yours, licensed, or permitted.
           </p>
         </div>
       </div>
 
 
-      <!-- ══════════════════════════════════════════════════ stat strip -->
-      <div class="reveal mx-auto mt-16 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4">
-        <div class="stat"><span class="stat-num" data-count="2" data-suffix="s">0</span><span class="stat-label">Average fetch time</span></div>
-        <div class="stat"><span class="stat-num" data-count="8" data-suffix="+">0</span><span class="stat-label">Platforms supported</span></div>
-        <div class="stat"><span class="stat-num" data-count="4" data-suffix="K">0</span><span class="stat-label">Max resolution</span></div>
-        <div class="stat"><span class="stat-num" data-count="0" data-suffix="">0</span><span class="stat-label">Signup required</span></div>
+      <!-- ══════════════════════════════ highlights carousel (swipeable) -->
+      <div class="reveal mx-auto mt-12 max-w-3xl sm:mt-16">
+        <div id="hiTrack" class="hscroll" role="group" aria-label="SaveVid highlights" tabindex="0">
+          <div class="hcard glass">
+            <span class="grid h-11 w-11 place-items-center rounded-2xl bg-amber-500/12 text-xl">⚡</span>
+            <p class="mt-3 text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white"><span class="stat-num" data-count="2" data-suffix="s">0</span></p>
+            <p class="mt-1 text-[13px] font-semibold text-slate-600 dark:text-slate-400">Average fetch time</p>
+          </div>
+          <div class="hcard glass">
+            <span class="grid h-11 w-11 place-items-center rounded-2xl bg-brand-500/12 text-xl">🌐</span>
+            <p class="mt-3 text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white"><span class="stat-num" data-count="8" data-suffix="+">0</span></p>
+            <p class="mt-1 text-[13px] font-semibold text-slate-600 dark:text-slate-400">Platforms supported</p>
+          </div>
+          <div class="hcard glass">
+            <span class="grid h-11 w-11 place-items-center rounded-2xl bg-violet-500/12 text-xl">📺</span>
+            <p class="mt-3 text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white"><span class="stat-num" data-count="4" data-suffix="K">0</span></p>
+            <p class="mt-1 text-[13px] font-semibold text-slate-600 dark:text-slate-400">Max resolution</p>
+          </div>
+          <div class="hcard glass">
+            <span class="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-500/12 text-xl">🔒</span>
+            <p class="mt-3 text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white"><span class="stat-num" data-count="0" data-suffix="">0</span></p>
+            <p class="mt-1 text-[13px] font-semibold text-slate-600 dark:text-slate-400">Signup required</p>
+          </div>
+        </div>
+
+        <div id="hiDots" class="hdots mt-4" role="tablist" aria-label="Highlight pages"></div>
       </div>
     </section>
 
