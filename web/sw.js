@@ -22,9 +22,11 @@
 // mangled every name. Both are inside a stale-while-revalidated cache, so
 // without this bump a returning visitor keeps clicking a download that
 // silently does nothing.
-// v6: app.js now rejects a non-2xx probe response instead of rendering an
-// empty object, and reads the metadata fields defensively.
-const VERSION = 'v6';
+// v7: the mobile redesign. index.html gains the bottom nav, the carousel
+// autoplay toggle and the play/duration overlay on the preview thumbnail; the
+// Vimeo marquee path is replaced with a valid one; app.js drives the bottom
+// nav from setMode so it cannot disagree with the tab strip.
+const VERSION = 'v7';
 const SHELL = `savevid-shell-${VERSION}`;
 const ASSETS = `savevid-assets-${VERSION}`;
 

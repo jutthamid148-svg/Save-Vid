@@ -499,8 +499,16 @@ window.adsenseSlot = '';
             <!-- header: platform tag, title, duration -->
             <div class="glass rounded-2xl p-3 sm:p-4">
               <div class="flex items-start gap-3 sm:gap-4">
-                <div id="thumbWrap" class="hidden aspect-video w-[124px] shrink-0 overflow-hidden rounded-xl bg-slate-900/5 sm:w-[168px] dark:bg-white/5">
+                <div id="thumbWrap" class="thumb-wrap hidden aspect-video w-[124px] shrink-0 overflow-hidden rounded-xl bg-slate-900/5 sm:w-[168px] dark:bg-white/5">
                   <img id="thumb" alt="" class="h-full w-full object-cover" />
+                  <!-- Play badge over the still. It is decorative, not a
+                       control: clicking anywhere on the card already starts the
+                       download, so a second target here would only invite the
+                       question of why this one behaves differently. -->
+                  <span class="thumb-play" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.2v13.6a.8.8 0 0 0 1.22.68l10.2-6.8a.8.8 0 0 0 0-1.36L9.22 4.52A.8.8 0 0 0 8 5.2Z"/></svg>
+                  </span>
+                  <span id="thumbDur" class="thumb-dur tnum" aria-hidden="true"></span>
                 </div>
 
                 <div class="min-w-0 flex-1">
@@ -595,7 +603,18 @@ window.adsenseSlot = '';
           </div>
         </div>
 
-        <div id="hiDots" class="hdots mt-4" role="tablist" aria-label="Highlight pages"></div>
+        <div class="mt-4 flex items-center justify-center gap-3">
+          <div id="hiDots" class="hdots" role="tablist" aria-label="Highlight pages"></div>
+          <!-- Auto-advance. Off by default and remembered per browser: a slider
+               that starts moving on its own is the thing people reach for the
+               pause button on, and a control they must hunt for is worse than
+               no control at all. -->
+          <button id="hiAuto" type="button" aria-pressed="false"
+                  class="tap grid h-7 w-7 place-items-center rounded-full border border-slate-300/70 text-slate-500 transition-colors duration-200 hover:border-brand-400 hover:text-brand-500 dark:border-white/15 dark:text-slate-400"
+                  title="Auto-play highlights" aria-label="Auto-play highlights">
+            <svg id="hiAutoIcon" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.2v13.6a.8.8 0 0 0 1.22.68l10.2-6.8a.8.8 0 0 0 0-1.36L9.22 4.52A.8.8 0 0 0 8 5.2Z"/></svg>
+          </button>
+        </div>
       </div>
     </section>
 
@@ -637,7 +656,7 @@ window.adsenseSlot = '';
     </a>
 
     <a href="#downloader" class="marquee-tile" style="--tile:#1AB7EA" title="Vimeo">
-      <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.9765 6.4168c-.105 2.338-1.739 5.5429-4.894 9.6088-3.2679 4.308-6.021 6.4565-8.242 6.4457-1.328-.0133-2.4503-1.2222-3.3661-3.6711-.6558-1.8682-1.2728-3.7967-1.8531-5.7689-.6704-2.2016-1.1083-3.5898-1.3134-4.1741-.2849-1.1055-2.0555-1.7241-5.3114-1.8551-1.0544-.042-2.0324.0244-2.9339.2v-2.9c1.9137-.5064 3.6562-.7617 5.2275-.7663 1.6624.0053 2.9453.4422 3.8508 1.31 1.0272 1.0207 1.5522 2.1904 1.5751 3.5106.0046.3009 0 .6022-.0125.9042-.0669 1.8181-.2812 2.7635-.6434h.03c1.8512-.2323 3.0873-.6633 3.7083-1.2925.6823-1.0092.63-2.3182-.1567-3.9256-.7112-1.4614-2.1258-2.1892-4.2445-2.1892h-.0305c-2.1235 0-3.7904.7304-4.9954 2.1878 1.0215-4.7885 4.0954-7.1644 8.1268-7.1653 1.0719 0 2.0908.2088 3.0525.6264-.7793 2.0022-1.1325 3.8196-1.1325Z"/></svg>
+      <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.9765 6.4168c-.105 2.338-1.739 5.5429-4.894 9.6088-3.2679 4.247-6.0258 6.3699-8.2898 6.3699-1.409 0-2.578-1.294-3.553-3.881l-1.9179-7.1138c-.719-2.584-1.488-3.878-2.312-3.878-.179 0-.806.378-1.8809 1.132l-1.129-1.457a315.06 315.06 0 003.501-3.1279c1.579-1.368 2.765-2.085 3.5539-2.159 1.867-.18 3.016 1.1 3.447 3.838.465 2.953.789 4.789.971 5.5069.5389 2.45 1.1309 3.674 1.7759 3.674.502 0 1.256-.796 2.265-2.385 1.004-1.589 1.54-2.797 1.612-3.628.144-1.371-.395-2.061-1.614-2.061-.574 0-1.167.121-1.777.391 1.186-3.8679 3.434-5.7568 6.7619-5.6368 2.4729.06 3.6279 1.664 3.4929 4.7969z"/></svg>
       <span>Vimeo</span>
     </a>
 
@@ -672,7 +691,7 @@ window.adsenseSlot = '';
       <span>SoundCloud</span>
     </a>
     <a href="#downloader" class="marquee-tile" style="--tile:#1AB7EA" title="Vimeo" aria-hidden="true" tabindex="-1">
-      <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M23.9765 6.4168c-.105 2.338-1.739 5.5429-4.894 9.6088-3.2679 4.308-6.021 6.4565-8.242 6.4457-1.328-.0133-2.4503-1.2222-3.3661-3.6711-.6558-1.8682-1.2728-3.7967-1.8531-5.7689-.6704-2.2016-1.1083-3.5898-1.3134-4.1741-.2849-1.1055-2.0555-1.7241-5.3114-1.8551-1.0544-.042-2.0324.0244-2.9339.2v-2.9c1.9137-.5064 3.6562-.7617 5.2275-.7663 1.6624.0053 2.9453.4422 3.8508 1.31 1.0272 1.0207 1.5522 2.1904 1.5751 3.5106.0046.3009 0 .6022-.0125.9042-.0669 1.8181-.2812 2.7635-.6434h.03c1.8512-.2323 3.0873-.6633 3.7083-1.2925.6823-1.0092.63-2.3182-.1567-3.9256-.7112-1.4614-2.1258-2.1892-4.2445-2.1892h-.0305c-2.1235 0-3.7904.7304-4.9954 2.1878 1.0215-4.7885 4.0954-7.1644 8.1268-7.1653 1.0719 0 2.0908.2088 3.0525.6264-.7793 2.0022-1.1325 3.8196-1.1325Z"/></svg>
+      <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M23.9765 6.4168c-.105 2.338-1.739 5.5429-4.894 9.6088-3.2679 4.247-6.0258 6.3699-8.2898 6.3699-1.409 0-2.578-1.294-3.553-3.881l-1.9179-7.1138c-.719-2.584-1.488-3.878-2.312-3.878-.179 0-.806.378-1.8809 1.132l-1.129-1.457a315.06 315.06 0 003.501-3.1279c1.579-1.368 2.765-2.085 3.5539-2.159 1.867-.18 3.016 1.1 3.447 3.838.465 2.953.789 4.789.971 5.5069.5389 2.45 1.1309 3.674 1.7759 3.674.502 0 1.256-.796 2.265-2.385 1.004-1.589 1.54-2.797 1.612-3.628.144-1.371-.395-2.061-1.614-2.061-.574 0-1.167.121-1.777.391 1.186-3.8679 3.434-5.7568 6.7619-5.6368 2.4729.06 3.6279 1.664 3.4929 4.7969z"/></svg>
       <span>Vimeo</span>
     </a>
     <a href="#downloader" class="marquee-tile" style="--tile:#0066DC" title="Dailymotion" aria-hidden="true" tabindex="-1">
@@ -1008,6 +1027,34 @@ window.adsenseSlot = '';
       </div>
     </section>
   </main>
+
+  <!-- ═══════════════════════════════════════ mobile bottom nav (thumb zone)
+       Fixed to the bottom on small screens only, where the top of the screen
+       is out of comfortable reach. Hidden from md up: at that width the mode
+       tabs sit directly above the input and a second navigation would be two
+       controls claiming the same job. The three mode items mirror the tab
+       strip rather than replacing it, so both stay the same length and the
+       strip still shows which mode is live. -->
+  <nav id="bottomNav" class="bottomnav app-safe-b md:hidden" aria-label="Primary">
+    <div class="bottomnav-inner glass">
+      <button class="bnav tap" type="button" data-mode="video" aria-current="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v10.5m0 0 3.8-3.8M12 14l-3.8-3.8M4 16.5v2.2A2.3 2.3 0 0 0 6.3 21h11.4a2.3 2.3 0 0 0 2.3-2.3v-2.2"/></svg>
+        <span>Video</span>
+      </button>
+      <button class="bnav tap" type="button" data-mode="audio">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.6"/><circle cx="16.5" cy="16" r="2.6"/></svg>
+        <span>MP3</span>
+      </button>
+      <button class="bnav tap" type="button" data-mode="playlist">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h11M4 12h11M4 18h7"/><path d="M17 12v6m0 0 2.2-2.2M17 18l-2.2-2.2"/></svg>
+        <span>Playlist</span>
+      </button>
+      <button class="bnav tap" type="button" data-nav="how-to">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.86.83c0 1.67-2.5 2.5-2.5 2.5M12 17h.01"/></svg>
+        <span>Help</span>
+      </button>
+    </div>
+  </nav>
 
   <!-- ═══════════════════════════════════════════════════════════ footer -->
     <div class="mx-auto max-w-7xl px-4 pb-4 sm:px-6 lg:px-8" role="complementary" aria-label="Advertisement">

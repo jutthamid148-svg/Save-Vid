@@ -105,6 +105,16 @@ function setMode(mode, opts) {
     }
   }
 
+  // The bottom bar mirrors the strip rather than owning the state: both are
+  // driven from setMode so they cannot disagree about which mode is live.
+  if (bnav) {
+    for (const b of bnav.querySelectorAll('.bnav')) {
+      const on = b.dataset.mode === mode;
+      if (on) b.setAttribute('aria-current', 'true');
+      else b.removeAttribute('aria-current');
+    }
+  }
+
   // Re-probe only if there is something to re-probe. Switching tab on an
   // empty box should not fire a request or flash the panel.
   if (!opts || !opts.silent) {
@@ -143,6 +153,32 @@ if (modeTabs) {
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(measure).catch(() => {});
   }
+}
+
+/* The bottom bar is a second control surface for the same three modes. It
+   exists on phones because the top of the screen is a stretch for a thumb,
+   and it is hidden from md up where the strip sits right above the input. */
+const bnav = document.getElementById('bottomNav');
+
+if (bnav) {
+  bnav.addEventListener('click', (e) => {
+    const b = e.target.closest('.bnav');
+    if (!b) return;
+
+    if (b.dataset.mode) {
+      setMode(b.dataset.mode);
+      // Bring the input back into view: picking MP3 from the bottom bar while
+      // scrolled deep into the page should show the control it just changed.
+      const el = document.getElementById('dlCard');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    if (b.dataset.nav) {
+      const target = document.getElementById(b.dataset.nav);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
 }
 
 /* ═════════════════════════════════════════════════ highlights carousel ═══
@@ -198,6 +234,81 @@ if (hiTrack && hiDots) {
 
   hiTrack.addEventListener('scroll', paintDots, { passive: true });
   paintDots();
+
+  /* Auto-advance. Opt-in, remembered, and it stops the moment the user does
+     anything at all -- a timer that keeps running under a finger is the
+     reason sliders get abandoned. It also pauses off-screen, because an
+     offscreen carousel animating is pure battery. */
+  const autoBtn = document.getElementById('hiAuto');
+  const autoIcon = document.getElementById('hiAutoIcon');
+  const PLAY = '<path d="M8 5.2v13.6a.8.8 0 0 0 1.22.68l10.2-6.8a.8.8 0 0 0 0-1.36L9.22 4.52A.8.8 0 0 0 8 5.2Z"/>';
+  const PAUSE = '<rect x="7" y="5" width="3.6" height="14" rx="1.1"/><rect x="13.4" y="5" width="3.6" height="14" rx="1.1"/>';
+  const REDUCED = matchMedia('(prefers-reduced-motion: reduce)');
+
+  let timer = null;
+  let wanted = false;
+
+  // Read once per session. A slider the user has deliberately paused should
+  // not silently resume on the next page load in the same tab.
+  let saved = null;
+  try { saved = sessionStorage.getItem('lf:hiAuto'); } catch { /* private mode */ }
+  if (saved === '1' && !REDUCED.matches) wanted = true;
+
+  function stop() {
+    wanted = false;
+    if (timer) { clearInterval(timer); timer = null; }
+    if (autoBtn) {
+      autoBtn.setAttribute('aria-pressed', 'false');
+      if (autoIcon) autoIcon.innerHTML = PLAY;
+    }
+    try { sessionStorage.setItem('lf:hiAuto', '0'); } catch { /* private mode */ }
+  }
+
+  function start() {
+    if (timer) return;
+    timer = setInterval(() => {
+      const atEnd = hiTrack.scrollLeft + hiTrack.clientWidth >= hiTrack.scrollWidth - 8;
+      if (atEnd) hiTrack.scrollTo({ left: 0, behavior: 'smooth' });
+      else {
+        const n = activeDot();
+        const next = cards[Math.min(n + 1, cards.length - 1)];
+        hiTrack.scrollTo({ left: next.offsetLeft - 20, behavior: 'smooth' });
+      }
+    }, 4200);
+  }
+
+  if (autoBtn) {
+    autoBtn.addEventListener('click', () => {
+      if (timer) return stop();
+      if (REDUCED.matches) return;      // honour the OS setting, don't argue
+      wanted = true;
+      autoBtn.setAttribute('aria-pressed', 'true');
+      if (autoIcon) autoIcon.innerHTML = PAUSE;
+      try { sessionStorage.setItem('lf:hiAuto', '1'); } catch { /* private mode */ }
+      start();
+    });
+  }
+
+  // Any real interaction cancels it.
+  for (const ev of ['touchstart', 'pointerdown', 'wheel']) {
+    hiTrack.addEventListener(ev, () => { if (wanted) stop(); }, { passive: true });
+  }
+  hiDots.addEventListener('click', () => { if (wanted) stop(); });
+
+  if (typeof IntersectionObserver === 'function') {
+    new IntersectionObserver((entries) => {
+      for (const en of entries) {
+        if (!en.isIntersecting && timer) { clearInterval(timer); timer = null; }
+        else if (en.isIntersecting && wanted && !timer) start();
+      }
+    }, { threshold: 0.25 }).observe(hiTrack);
+  }
+
+  if (wanted) {
+    autoBtn.setAttribute('aria-pressed', 'true');
+    if (autoIcon) autoIcon.innerHTML = PAUSE;
+    start();
+  }
 }
 
 /* ═════════════════════════════════════════════════ scroll reveals */
@@ -372,6 +483,7 @@ const metaTitle  = document.getElementById('metaTitle');
 const metaBy     = document.getElementById('metaBy');
 const metaDur    = document.getElementById('metaDur');
 const thumb      = document.getElementById('thumb');
+const thumbDur   = document.getElementById('thumbDur');
 const thumbWrap  = document.getElementById('thumbWrap');
 const metaReset  = document.getElementById('metaReset');
 
@@ -572,6 +684,11 @@ function renderOptions(meta) {
   metaTitle.textContent = meta.title || 'Untitled video';
   metaBy.textContent = meta.uploader || '';
   metaDur.textContent = fmtDuration(meta.duration);
+
+  // Same duration as a chip over the still. The text next to the platform tag
+  // is the authoritative one; this is the glanceable duplicate a video app
+  // puts on the poster itself.
+  if (thumbDur) thumbDur.textContent = meta.duration ? fmtDuration(meta.duration) : '';
 
   if (meta.thumbnail) {
     thumb.src = meta.thumbnail;

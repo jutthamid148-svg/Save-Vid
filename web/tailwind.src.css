@@ -379,6 +379,82 @@
 }
 @keyframes aiIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 
+/* ═════════════════════════════════════ preview card thumbnail chrome ═══ */
+.thumb-wrap { position: relative; }
+.thumb-wrap::after {
+  /* Scrim so the duration chip stays readable over a bright frame. A
+     gradient rather than a flat wash: it darkens the bottom edge, which is
+     where the chip lives, and leaves the middle of the artwork alone. */
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to top, rgb(0 0 0 / .62), transparent 55%);
+}
+.thumb-play {
+  position: absolute; inset: 0; z-index: 1; margin: auto;
+  width: 38%; min-width: 30px; max-width: 44px; aspect-ratio: 1;
+  display: grid; place-items: center;
+  border-radius: 9999px; color: #fff;
+  background: rgb(15 23 42 / .42);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / .3), 0 4px 14px rgb(0 0 0 / .3);
+  transition: transform .28s cubic-bezier(.22, 1, .36, 1), background-color .28s;
+}
+.thumb-play svg { width: 62%; height: 62%; margin-left: 8%; }
+.thumb-wrap:hover .thumb-play { transform: scale(1.08); background: rgb(47 107 255 / .75); }
+.thumb-dur {
+  position: absolute; z-index: 2; right: 6px; bottom: 6px;
+  padding: 2px 6px; border-radius: 6px;
+  background: rgb(0 0 0 / .72); color: #fff;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .02em;
+}
+
+/* Touch targets. Anything a thumb has to hit is padded out to 48px without
+   changing how large it looks: the hit area grows via padding and a negative
+   margin, so the paste button can still read as a small chip inside the input
+   without becoming a 31px target. */
+#pasteBtn { padding: 0 14px; min-height: 48px; }
+@media (hover: hover) and (pointer: fine) {
+  /* A mouse has a cursor and needs no extra room, so the chip stays compact. */
+  #pasteBtn { min-height: 0; padding: 6px 10px; }
+}
+#hiAuto { position: relative; }
+#hiAuto::before { content: ""; position: absolute; inset: -11px -6px; }
+
+/* ═══════════════════════════════════════════ mobile bottom navigation ══ */
+.bottomnav {
+  position: fixed; z-index: 60; left: 0; right: 0; bottom: 0;
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
+  pointer-events: none;              /* the bar's own padding is not a target */
+}
+.bottomnav-inner {
+  pointer-events: auto;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 2px; padding: 6px; border-radius: 20px;
+}
+/* 48px is the smallest target the guidelines accept, and the reason this bar
+   works one-handed: it has to be hittable without looking. */
+.bnav {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; min-height: 48px; padding: 6px 2px; border-radius: 14px;
+  color: rgb(100 116 139);
+  font-size: 10.5px; font-weight: 700; letter-spacing: .01em;
+  transition: color .25s, background-color .25s;
+}
+.bnav svg { width: 21px; height: 21px; }
+.bnav[aria-current="true"] { color: #2f6bff; background: rgb(47 107 255 / .1); }
+:is(.dark) .bnav { color: rgb(148 163 184); }
+:is(.dark) .bnav[aria-current="true"] { color: #8ab4ff; background: rgb(255 255 255 / .08); }
+
+/* The page needs somewhere to put its last row. Without this the fixed bar
+   sits on top of the footer's last line. */
+@media (max-width: 767px) {
+  body { padding-bottom: 78px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thumb-play { transition: none; }
+  .thumb-wrap:hover .thumb-play { transform: none; }
+}
+
 /* ══════════════════════════════════════════════════════════ ad slots ════
    Every container reserves its height up front. An ad that appears and pushes
    the page down is the classic reason a site fails Core Web Vitals, and it is
