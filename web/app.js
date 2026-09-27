@@ -562,9 +562,14 @@ function safeFileName(raw, ext) {
 }
 
 function renderOptions(meta) {
-  platName.textContent = meta.platform.name;
-  platTag.style.background = meta.platform.colour;
-  metaTitle.textContent = meta.title;
+  // The server contract is a shape, not a promise: a cached entry from an
+  // older deploy, a truncated response, or a new platform without a colour all
+  // land here. Every field is read defensively so a malformed payload paints a
+  // sparse card instead of throwing and leaving a half-drawn panel behind.
+  const plat = meta.platform || {};
+  platName.textContent = plat.name || 'Video';
+  platTag.style.background = plat.colour || '#2f6bff';
+  metaTitle.textContent = meta.title || 'Untitled video';
   metaBy.textContent = meta.uploader || '';
   metaDur.textContent = fmtDuration(meta.duration);
 
@@ -642,7 +647,16 @@ async function probe(raw) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: raw, vid })
     });
-    const data = await res.json().catch(() => ({}));
+    // A non-2xx here is a real failure -- a misrouted or crashed backend, not
+    // an empty result. Handing `{}` to renderOptions used to throw on
+    // meta.platform.name and blank the panel with an unhandled TypeError;
+    // it now reports the actual status to the user.
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      throw new Error((body && body.error) || `The server returned ${res.status}. Try again in a moment.`);
+    }
+    const data = await res.json();
+    if (!data || typeof data !== 'object') throw new Error('The server sent back something unreadable.');
     if (data.error) throw new Error(data.error);
     if (token !== probeToken) return;          // a newer paste already won
 

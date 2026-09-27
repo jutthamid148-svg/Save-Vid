@@ -22,7 +22,9 @@
 // mangled every name. Both are inside a stale-while-revalidated cache, so
 // without this bump a returning visitor keeps clicking a download that
 // silently does nothing.
-const VERSION = 'v5';
+// v6: app.js now rejects a non-2xx probe response instead of rendering an
+// empty object, and reads the metadata fields defensively.
+const VERSION = 'v6';
 const SHELL = `savevid-shell-${VERSION}`;
 const ASSETS = `savevid-assets-${VERSION}`;
 
