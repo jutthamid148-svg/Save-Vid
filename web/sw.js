@@ -10,7 +10,13 @@
 //
 // Bump CACHE when any of these files change, or users keep the old copy forever.
 
-const VERSION = 'v1';
+// v2: styles.css went from hand-written 14.5KB to 43.9KB compiled Tailwind.
+// Not a routine bump. A v1 client holding the old stylesheet would serve it
+// stale-while-revalidate on first paint, and that old file contains none of the
+// compiled utility classes the new HTML depends on -- the CDN script it used to
+// pull them in is gone. The page would render completely unstyled until the
+// revalidate landed. Bumping VERSION drops those caches outright.
+const VERSION = 'v2';
 const SHELL = `savevid-shell-${VERSION}`;
 const ASSETS = `savevid-assets-${VERSION}`;
 

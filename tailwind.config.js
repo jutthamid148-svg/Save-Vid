@@ -8,7 +8,12 @@ module.exports = {
   darkMode: 'class',
   content: [
     './web/**/*.html',
-    './web/app.js'
+    './web/app.js',
+    // sw.js is included because it renders a few class names as strings when
+    // it builds the offline fallback. Tailwind cannot see inside a string
+    // unless the file is scanned, and a class it never saw is a class it never
+    // emits.
+    './web/sw.js'
   ],
   theme: {
     extend: {
