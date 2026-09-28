@@ -681,6 +681,10 @@ const TTL_PROBE = 30 * 60 * 1000;
 const TTL_LINKS = 10 * 60 * 1000;
 // Keep a probe only while the urls it carries are still fetchable.
 const TTL_PROBE_LINKS = 4 * 60 * 1000;      // CDN links expire, so keep these short
+// A bot-check refusal is a verdict about this server's IP, not about the link,
+// so it stays true for a while. Remembering it turns a repeat paste from a
+// full ladder + yt-dlp run into an instant, same answer.
+const TTL_PROBE_FAIL = 5 * 60 * 1000;
 
 const cache = new Map();               // key -> { value, expires, kind }
 
@@ -801,9 +805,10 @@ function videoIdOf(url) {
 // client and LOGIN_REQUIRED ("Sign in to confirm you're not a bot") for another,
 // and the verdict depends on the *calling IP's* reputation, so which client
 // works from a Vercel function is not the same as which works from a laptop.
-// Each entry is a client that returns plain un-ciphered CDN urls, ordered
-// cheapest-to-tried first. No key parameter -- supplying a stale one is what
-// makes YouTube answer 400 FAILED_PRECONDITION.
+// Each entry is a client that returns plain un-ciphered CDN urls. They are all
+// raced at once, so the order here only decides which one wins a tie. No key
+// parameter -- supplying a stale one is what makes YouTube answer 400
+// FAILED_PRECONDITION.
 const INNERTUBE_CLIENTS = [
   {
     name: 'ANDROID', version: '20.10.38', id: '3', androidSdkVersion: 34,
@@ -816,6 +821,32 @@ const INNERTUBE_CLIENTS = [
   {
     name: 'ANDROID_VR', version: '1.60.19', id: '28', androidSdkVersion: 32,
     ua: 'com.google.android.apps.youtube.vr.oculus/1.60.19 (Linux; U; Android 12) gzip'
+  },
+  // TVHTML5 is the client that actually still answers from a datacenter IP.
+  // ANDROID/IOS/VR get the "Sign in to confirm you're not a bot" wall far more
+  // aggressively now, while the Cobalt TV stack is barely checked. It needs
+  // no api key and returns plain un-ciphered urls, same as the rest.
+  {
+    name: 'TVHTML5', version: '7.20250316.18.00', id: '7',
+    ua: 'Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version'
+  },
+  // These three are the ones that most often still answer from a datacenter IP
+  // after the mobile clients above have been told to "confirm you're not a bot".
+  // They are tried last because they cost an extra round trip and only pay off
+  // when the first three have already failed.
+  {
+    name: 'TVHTML5_SIMPLY_EMBEDDED_PLAYER', version: '2.0', id: '85',
+    ua: 'Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version',
+    thirdParty: { embedUrl: 'https://www.youtube.com/' }
+  },
+  {
+    name: 'WEB_EMBEDDED_PLAYER', version: '1.20250317.01.00', id: '56',
+    ua: 'Mozilla/5.0',
+    thirdParty: { embedUrl: 'https://www.youtube.com/' }
+  },
+  {
+    name: 'MWEB', version: '2.20250311.03.00', id: '2',
+    ua: 'Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36'
   }
 ];
 
@@ -827,7 +858,8 @@ function innertubeBody(videoId, client) {
         clientVersion: client.version,
         hl: 'en',
         ...(client.androidSdkVersion ? { androidSdkVersion: client.androidSdkVersion } : {})
-      }
+      },
+      ...(client.thirdParty ? { thirdParty: client.thirdParty } : {})
     },
     videoId,
     contentCheckOk: true,
@@ -873,17 +905,23 @@ async function innertubeOnce(videoId, client) {
   return j;
 }
 
+// Fire every client at once and take the first good answer. Running them in
+// order instead would make the wait additive -- a link that only the last
+// client can serve would pay the full timeout of every client above it, and a
+// link no client can serve would pay all of them before saying no.
 async function innertubePlayer(videoId) {
-  let last = null;
-  for (const client of INNERTUBE_CLIENTS) {
-    try {
-      return await innertubeOnce(videoId, client);
-    } catch (e) {
-      last = e;
-      console.warn(`[fast] InnerTube ${client.name} failed for ${videoId}: ${e.message}`);
+  const results = await Promise.allSettled(
+    INNERTUBE_CLIENTS.map((c) => innertubeOnce(videoId, c))
+  );
+  for (const r of results) {
+    if (r.status === 'fulfilled') return r.value;
+  }
+  for (const [i, r] of results.entries()) {
+    if (r.status === 'rejected') {
+      console.warn(`[fast] InnerTube ${INNERTUBE_CLIENTS[i].name} failed for ${videoId}: ${r.reason.message}`);
     }
   }
-  throw last || new Error('InnerTube could not read this video.');
+  throw new Error('InnerTube could not read this video.');
 }
 
 // oEmbed only needs a plain user agent, not a full client impersonation.
@@ -993,13 +1031,21 @@ async function probeMetadata(url) {
   try {
     // --no-check-formats is the single biggest win here: without it yt-dlp
     // HTTP-probes all 50+ formats and a probe takes ~30s instead of ~8s.
+    // The extractor-args pin the same client the fast path tried last, so a
+    // datacenter IP that got refused on the plain request still has a chance
+    // via the TV stack instead of hitting the anonymous wall immediately.
     raw = await runYtDlp(['--no-warnings', '--no-playlist', '--no-check-certificate',
-      '--no-check-formats', '--socket-timeout', '15', '-J', url]);
+      '--no-check-formats', '--socket-timeout', '15',
+      '--extractor-args', 'youtube:player_client=tv_embedded,web_safari,mweb',
+      '-J', url]);
   } catch (e) {
-    const hint = /Sign in to confirm|cookies|bot/i.test(e.message)
-      ? ' YouTube is asking for authentication from this server.'
-      : '';
-    throw new Error(`Could not read this link:${hint} ${e.message}`);
+    // The raw yt-dlp text is a wall of stack-trace-ish noise that says nothing
+    // actionable. A bot-check refusal gets a sentence the user can act on.
+    if (/Sign in to confirm|cookies|not a bot|bot/i.test(e.message)) {
+      throw new Error('YouTube is refusing requests from this server\'s network. '
+        + 'This is an IP-reputation block on the host, not a problem with the link.');
+    }
+    throw new Error(`Could not read this link. ${e.message}`);
   }
 
   let info;
@@ -1390,8 +1436,19 @@ async function api(req, res, route) {
       throw new Error('The link does not match the detected video id.');
     }
     const ytId = serverId || clientId;
+    // A refused probe is remembered under a separate kind, so a cached
+    // success and a cached refusal can never be confused for one another.
+    const refusal = cacheGet(key, 'probe-fail');
+    if (refusal) throw new Error(refusal);
+
     const data = await once(key, 'probe', TTL_PROBE,
-      () => (ytId ? probeFastYT(raw, ytId).catch(() => probeMetadata(raw)) : probeMetadata(raw)));
+      () => (ytId ? probeFastYT(raw, ytId).catch(() => probeMetadata(raw)) : probeMetadata(raw)))
+      .catch((e) => {
+        if (/bot|authentication|not a bot/i.test(e.message)) {
+          cacheSet(key, 'probe-fail', e.message, TTL_PROBE_FAIL);
+        }
+        throw e;
+      });
     return json(res, 200, data, { 'X-Cache': wasCached ? 'HIT' : 'MISS' });
   }
 
